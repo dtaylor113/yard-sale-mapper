@@ -47,6 +47,16 @@ describe("buildGoogleMapsRouteLegs", () => {
     expect(new URL(leg.url).searchParams.get("api")).toBe("1");
   });
 
+  it("asks for driving turn-by-turn rather than a route preview", () => {
+    // travelmode is not just a nicety: leaving it off lets Google fall back to
+    // the rider's last-used mode, which breaks multi-waypoint links on iOS.
+    for (const leg of buildGoogleMapsRouteLegs(HOME, makeStops(20))) {
+      const params = new URL(leg.url).searchParams;
+      expect(params.get("travelmode")).toBe("driving");
+      expect(params.get("dir_action")).toBe("navigate");
+    }
+  });
+
   it("percent-encodes addresses so commas and spaces survive the URL", () => {
     const [leg] = buildGoogleMapsRouteLegs(HOME, makeStops(1));
 

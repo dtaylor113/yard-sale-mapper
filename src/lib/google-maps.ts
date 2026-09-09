@@ -31,6 +31,16 @@ function buildSingleLegUrl(origin: string, destination: string, waypoints: strin
     api: "1",
     origin,
     destination,
+    // Without an explicit mode Google picks whichever modes look "most
+    // relevant" from the route and the rider's history. That also triggers a
+    // long-standing iOS bug where a multi-waypoint link errors out with
+    // "Unsupported Link" if the last mode used was transit.
+    travelmode: "driving",
+    // Skips the route preview and starts turn-by-turn. Google only honors this
+    // when the origin is near the driver's current location, which holds for
+    // these legs: the first starts at their own address, and each later one
+    // starts at the stop where the previous leg left them.
+    dir_action: "navigate",
   });
   if (waypoints.length > 0) {
     params.set("waypoints", waypoints.join("|"));

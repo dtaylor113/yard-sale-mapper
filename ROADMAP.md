@@ -294,7 +294,29 @@ Two notes for later:
 - [x] Results panel: ordered stop list, total distance, total drive time.
 - [x] "Open in Google Maps" deep-link button, chunked into legs of ≤9 waypoints
       with each leg resuming where the last ended. **Real, working, unit-tested**
-      (`src/lib/google-maps.test.ts`) — no API key or backend needed.
+      (`src/lib/google-maps.test.ts`) — no API key or backend needed. Each leg
+      is labeled with the stops it covers, and carries `travelmode=driving`
+      (without it Google guesses the mode, and multi-waypoint links can fail on
+      iOS with "Unsupported Link") plus `dir_action=navigate` to start
+      turn-by-turn rather than a route preview.
+- [ ] **Decide how to handle the 3-waypoint cap on mobile browsers.** Google's
+      Maps URLs docs: *"up to three waypoints supported on mobile browsers, and
+      a maximum of nine waypoints supported otherwise."* Our 9-waypoint legs
+      therefore depend on the Google Maps **app** intercepting the universal
+      link. If it opens in a phone browser instead — app not installed, or an
+      in-app browser (Gmail, Facebook, SMS previews) that doesn't hand off —
+      stops 4+ are dropped **silently**, and the driver never learns they
+      skipped them. Options: tell drivers to open in the app, detect the
+      no-app case, or fall back to 3-waypoint legs.
+- [ ] **Waze is not an option for the multi-stop hand-off.** Waze deep links
+      (`https://waze.com/ul?...`) take exactly one destination; there is no
+      waypoints parameter, and Google's own Navigation Connect docs say *"Don't
+      use multiple waypoints. If you pass multiple waypoints directly in the
+      URL, Google Maps or Waze displays an error."* A Google Maps link also
+      won't open in Waze. If Waze users need supporting, the only workable
+      shape is a per-stop "next stop in Waze" link (`?q=<address>&navigate=yes`,
+      or `?ll=<lat>,<lng>` once stops are geocoded) that the driver taps again
+      at each arrival.
 - [x] Editing the selection and re-clicking "Calculate Route" recomputes.
 - [ ] Replace the stub solver. `calculateRoute` currently fakes a 900ms delay and
       orders stops by nearest-neighbor over **straight-line** distance from a
