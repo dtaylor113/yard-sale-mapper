@@ -9,6 +9,8 @@ interface MockTown {
   zip: string;
   /** Roughly the town center; stops are scattered around it. */
   center: { lat: number; lng: number };
+  /** Radius of that scatter, in degrees. */
+  spread: number;
   /** Real street names, so the Google Maps hand-off has a chance of resolving them. */
   streets: string[];
 }
@@ -20,6 +22,7 @@ const CLINTON: MockTown = {
   // Nudged east of the town line so the scatter stays over streets instead of
   // dropping pins into the Wachusett Reservoir.
   center: { lat: 42.4183, lng: -71.6785 },
+  spread: 0.013,
   streets: [
     "High St",
     "Church St",
@@ -49,6 +52,7 @@ const STERLING: MockTown = {
   state: "MA",
   zip: "01564",
   center: { lat: 42.4376, lng: -71.7606 },
+  spread: 0.012,
   streets: [
     "Maple St",
     "Meetinghouse Hill Rd",
@@ -84,6 +88,8 @@ const NOTES = [
   "Garden equipment, bikes, camping gear",
 ];
 
+const GOLDEN_ANGLE = 2.399963;
+
 // Deterministic pseudo-scatter around the town center, so the map has
 // something plausible to plot.
 //
@@ -91,9 +97,12 @@ const NOTES = [
 // they're a spiral around the town center, not a geocode. A pin sitting on
 // "High St" is a coincidence. Real correspondence arrives in Phase 2 when
 // addresses actually get geocoded.
-function scatter(town: MockTown, index: number, spread: number) {
-  const angle = index * 2.399963; // golden-angle-ish spacing, deterministic
-  const radius = spread * Math.sqrt((index % 23) / 23);
+function scatter(town: MockTown, index: number, spread: number, total: number) {
+  // Vogel spiral. The radius has to be strictly increasing with the index:
+  // two stops sharing a radius can collide, and at radius zero the angle
+  // stops mattering, so the half-step offset keeps index 0 off dead center.
+  const angle = index * GOLDEN_ANGLE;
+  const radius = spread * Math.sqrt((index + 0.5) / total);
   return {
     lat: town.center.lat + radius * Math.cos(angle),
     lng: town.center.lng + radius * Math.sin(angle) * 1.3,
@@ -106,13 +115,13 @@ function addressIn(town: MockTown, index: number) {
   return `${houseNumber} ${street}, ${town.name}, ${town.state} ${town.zip}`;
 }
 
-function buildStops(eventId: string, town: MockTown, count: number, spread: number): Stop[] {
+function buildStops(eventId: string, town: MockTown, count: number): Stop[] {
   const stops: Stop[] = [];
   for (let i = 0; i < count; i++) {
     // Every 11th stop "fails" to geocode, purely to exercise the error styling.
     // Failed stops carry no coordinates, same as a real failure would.
     const failed = i % 11 === 5;
-    const { lat, lng } = scatter(town, i, spread);
+    const { lat, lng } = scatter(town, i, town.spread, count);
     stops.push({
       id: `${eventId}-stop-${i + 1}`,
       eventId,
@@ -167,9 +176,9 @@ const TOWN_BY_EVENT: Record<string, MockTown> = {
 };
 
 export const MOCK_STOPS: Record<string, Stop[]> = {
-  "clinton-town-wide": buildStops("clinton-town-wide", CLINTON, 32, 0.013),
-  "sterling-neighborhood-sale": buildStops("sterling-neighborhood-sale", STERLING, 6, 0.012),
-  "clinton-spring-cleanout": buildStops("clinton-spring-cleanout", CLINTON, 3, 0.01),
+  "clinton-town-wide": buildStops("clinton-town-wide", CLINTON, 32),
+  "sterling-neighborhood-sale": buildStops("sterling-neighborhood-sale", STERLING, 6),
+  "clinton-spring-cleanout": buildStops("clinton-spring-cleanout", CLINTON, 3),
 };
 
 /**
@@ -179,10 +188,11 @@ export const MOCK_STOPS: Record<string, Stop[]> = {
  */
 export function mockImportedAddress(eventId: string, index: number) {
   const town = TOWN_BY_EVENT[eventId] ?? CLINTON;
-  // Offset past the fixture stops so imported rows read as new addresses.
+  // Offset past the fixture stops so imported rows read as new addresses, and
+  // land them on the outer half of the spiral so they don't crowd the center.
   const offset = index + 40;
   return {
     rawAddress: addressIn(town, offset),
-    ...scatter(town, offset, 0.02),
+    ...scatter(town, offset, town.spread, 80),
   };
 }
