@@ -212,6 +212,14 @@ The one piece of non-stub production logic today is `src/lib/google-maps.ts`
 - [x] Vitest for unit tests (`npm test`). Worth pointing at pure logic like the
       route-leg chunking and, later, the geocode/optimizer adapters — a bad loop
       in `buildGoogleMapsRouteLegs` froze the browser mid-render once already.
+- [x] Component tests via jsdom + Testing Library
+      (`src/pages/event-detail-page.test.tsx`), covering the URL/redirect and
+      selection behavior that pure unit tests can't reach.
+- [ ] **No visual or end-to-end coverage.** jsdom has no rendering engine, so
+      nothing catches layout or map bugs — two real ones so far (a stop list
+      frozen at a fixed height while its panel stretched, and two map pins
+      landing on the exact same point) were both caught by eye, not by tests.
+      Playwright against the dev server is the fix when it's worth the setup.
 - [x] **UI-only mockup pass:** every page, modal, and navigation path built
       against mock data and stubbed async functions in `src/lib/data-provider.tsx`,
       so the screens can be agreed on before any backend exists. Each stub already
@@ -224,11 +232,20 @@ The one piece of non-stub production logic today is `src/lib/google-maps.ts`
 - [x] Public event list + detail pages; add/edit/delete controls rendered only in
       admin mode. **UI only** — mutations hit in-memory stubs, so edits vanish on
       reload.
+- [x] Event URLs are `/events/<slug>-<id>` (`src/lib/event-url.ts`). Only the
+      trailing id resolves the event; the slug is decorative, so renaming an
+      event doesn't strand links already shared, and the detail page forwards
+      stale slugs to the current one. **When the database starts assigning ids,
+      they must stay free of `-`** — the slug boundary is the last dash.
 - [x] Hidden UI trigger (Shift + 3 clicks on the logo) reveals the login prompt.
 - [x] Admin login form + client-side admin state (`src/lib/admin-provider.tsx`),
       accepting a hardcoded demo password (`yardsale`). **This is not a security
       boundary** — it only decides what the UI renders. Anyone can flip it from
       devtools. The real gate is the server-side session check below.
+The server-side half of this phase is **deliberately deferred behind Phase 2**.
+The mocked admin UI is good enough to create an event by hand; what the app
+actually lacks is real address data.
+
 - [ ] Stand up the Express API service; point Vite's dev proxy at it.
 - [ ] Real admin login: `POST /api/admin/login` checks a hashed password (env var),
       sets an httpOnly signed session cookie on success; `POST /api/admin/logout`.
@@ -239,13 +256,29 @@ The one piece of non-stub production logic today is `src/lib/google-maps.ts`
 - [ ] Point the `data-provider` stubs at the real endpoints (their async signatures
       already match, so consuming components shouldn't need to change).
 
-### Phase 2 — Spreadsheet import + geocoding
+### Phase 2 — Spreadsheet import + geocoding ← **next up**
+> Prioritized ahead of the rest of Phase 1: full admin CRUD can stay mocked, but
+> "create an event and upload a spreadsheet of addresses" is the minimum needed
+> to put real data in the app. Real coordinates also unblock Phase 4 — the route
+> optimizer has nothing meaningful to optimize without them.
+
 - [x] Upload UI: drag/drop or browse for a `.csv`/`.xlsx`, progress state, and an
       import report table listing per-row success/failure. **Entirely faked** —
       `importStopsFromSpreadsheet` invents rows from the filename and fails every
       fifth one to exercise the error styling. Nothing is parsed.
 - [ ] Column mapping step (address, label/notes) so any export format works.
 - [ ] Actually parse rows → create `Stop`s with `geocode_status = pending`.
+- [ ] **Decide where geocoding runs, and against what.** Nominatim is free but
+      its usage policy caps bulk work at ~1 request/second and wants an
+      identifying `User-Agent`, which a browser can't set — so bulk geocoding
+      from the client is both slow (a 100-stop event takes ~2 minutes) and
+      against their terms. Practical options: run it server-side behind the
+      Express API, or use a keyed service with a free tier (ORS, LocationIQ,
+      MapTiler). Either way the adapter stays swappable.
+- [ ] **Decide where imported data lives.** Everything is in-memory today, so an
+      upload evaporates on refresh — which makes the feature useless on its own.
+      Either bring Postgres forward from Phase 0, or persist to localStorage as
+      an interim step if a real backend isn't worth standing up yet.
 - [ ] Geocoding worker: batch geocode pending stops (rate-limited), store lat/lng.
 - [ ] Import report driven by real results; allow manual address fix + re-geocode.
 - [ ] **Validate the user's starting address by geocoding it.** Right now the route
@@ -257,13 +290,18 @@ The one piece of non-stub production logic today is `src/lib/google-maps.ts`
 ### Phase 3 — Map visualization + stop selection ✅
 - [x] `react-leaflet` + OpenStreetMap tiles in `src/components/stop-map.tsx`,
       auto-framed on the event's stops. Replaces the old fake placeholder box.
-- [x] Popups per stop: address, label, notes, and a warning when the stop's
-      coordinates are approximate because geocoding failed.
+- [x] Popups per stop: address, label, notes. (Stops whose geocoding failed
+      carry no coordinates at all, so they never reach the map.)
 - [x] **Selectable stops, synced both ways.** The pin popup has an "Add to /
       Remove from route" button and the list panel has a checkbox; both drive the
       same `Set<stopId>` held in `event-detail-page.tsx`, so the map's fill color
       and the list's checkboxes can never disagree. Plus select-all / select-none
       and a selected/total count.
+- [x] **Every stop starts selected**, since planning a route through the whole
+      sale is the common case. State tracks what the visitor *unchecked*, so
+      stops added later (a spreadsheet import) arrive checked too, and it's
+      keyed to the event id rather than the URL, so canonicalizing a renamed
+      slug doesn't silently re-check everything.
 - [x] Stops with no coordinates are counted below the map rather than silently
       dropped ("2 stops could not be placed on the map").
 - [ ] Marker clustering. Not needed yet — the largest mock event is 32 stops and
@@ -332,6 +370,8 @@ Two notes for later:
 - [x] Loading and error states throughout the mocked flows (calculating, saving,
       uploading, bad password, empty selection).
 - [x] Failed-geocode stops flagged with a warning chip in the stop list.
+- [x] The stop list grows to fill its panel instead of stopping at a fixed
+      height partway down, so its scrollbar matches the card beside it.
 - [ ] Actually exclude failed-geocode stops from routing (today they're only
       labeled — nothing stops you selecting one and routing to it).
 - [ ] Mobile-responsive layout — the two-column stop list / route planner grid
