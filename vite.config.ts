@@ -1,5 +1,5 @@
 import { fileURLToPath, URL } from "node:url";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -12,5 +12,10 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+  },
+  test: {
+    // Component tests render into jsdom; the pure-logic suites don't care.
+    environment: "jsdom",
+    setupFiles: ["./src/test-setup.ts"],
   },
 });
