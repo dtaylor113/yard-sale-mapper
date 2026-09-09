@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useAdmin } from "@/lib/admin-context";
 import { useData } from "@/lib/data-context";
@@ -8,7 +6,7 @@ import { EventCard } from "@/components/event-card";
 import { EventFormModal } from "@/components/event-form-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
-export default function HomePage() {
+export function HomePage() {
   const { isAdmin } = useAdmin();
   const { events, getStops, createEvent, updateEvent, deleteEvent } = useData();
 

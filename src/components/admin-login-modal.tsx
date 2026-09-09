@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useAdmin } from "@/lib/admin-context";
 import { Modal } from "./modal";

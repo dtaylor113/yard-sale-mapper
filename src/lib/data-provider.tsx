@@ -1,6 +1,5 @@
-"use client";
-
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { DataContext, type DataContextValue } from "./data-context";
 import { MOCK_EVENTS, MOCK_STOPS } from "./mock-data";
 import type {
   CalculateRouteParams,
@@ -69,22 +68,6 @@ function nearestNeighborOrder(stops: Stop[]): Stop[] {
 function newId(prefix: string) {
   return `${prefix}-${(typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2))}`;
 }
-
-interface DataContextValue {
-  events: YardSaleEvent[];
-  getEvent: (id: string) => YardSaleEvent | undefined;
-  getStops: (eventId: string) => Stop[];
-  createEvent: (input: EventInput) => Promise<YardSaleEvent>;
-  updateEvent: (id: string, input: EventInput) => Promise<YardSaleEvent>;
-  deleteEvent: (id: string) => Promise<void>;
-  createStop: (eventId: string, input: StopInput) => Promise<Stop>;
-  updateStop: (id: string, input: StopInput) => Promise<Stop>;
-  deleteStop: (id: string) => Promise<void>;
-  importStopsFromSpreadsheet: (eventId: string, fileName: string) => Promise<ImportRow[]>;
-  calculateRoute: (params: CalculateRouteParams) => Promise<RouteResult>;
-}
-
-const DataContext = createContext<DataContextValue | null>(null);
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<YardSaleEvent[]>(MOCK_EVENTS);
@@ -274,12 +257,4 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;
-}
-
-export function useData() {
-  const ctx = useContext(DataContext);
-  if (!ctx) {
-    throw new Error("useData must be used within a DataProvider");
-  }
-  return ctx;
 }

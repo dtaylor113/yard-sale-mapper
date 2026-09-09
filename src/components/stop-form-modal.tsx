@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import type { Stop, StopInput } from "@/lib/types";
 import { Modal } from "./modal";

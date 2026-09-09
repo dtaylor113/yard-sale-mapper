@@ -1,18 +1,15 @@
-"use client";
-
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAdmin } from "@/lib/admin-context";
 import { useData } from "@/lib/data-context";
 import type { Stop } from "@/lib/types";
-import { MapPlaceholder } from "./map-placeholder";
-import { StopList } from "./stop-list";
-import { RoutePlanner } from "./route-planner";
-import { EventFormModal } from "./event-form-modal";
-import { StopFormModal } from "./stop-form-modal";
-import { SpreadsheetUploadModal } from "./spreadsheet-upload-modal";
-import { ConfirmDialog } from "./confirm-dialog";
+import { MapPlaceholder } from "@/components/map-placeholder";
+import { StopList } from "@/components/stop-list";
+import { RoutePlanner } from "@/components/route-planner";
+import { EventFormModal } from "@/components/event-form-modal";
+import { StopFormModal } from "@/components/stop-form-modal";
+import { SpreadsheetUploadModal } from "@/components/spreadsheet-upload-modal";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 
 const STATUS_STYLES: Record<string, string> = {
   published: "bg-green-100 text-green-800",
@@ -20,8 +17,9 @@ const STATUS_STYLES: Record<string, string> = {
   archived: "bg-yellow-100 text-yellow-800",
 };
 
-export function EventDetailClient({ eventId }: { eventId: string }) {
-  const router = useRouter();
+export function EventDetailPage() {
+  const { eventId = "" } = useParams();
+  const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { getEvent, getStops, updateEvent, deleteEvent, createStop, updateStop, deleteStop, importStopsFromSpreadsheet } =
     useData();
@@ -41,7 +39,7 @@ export function EventDetailClient({ eventId }: { eventId: string }) {
     return (
       <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
         <p className="text-sm text-gray-500">This event doesn&apos;t exist (or was deleted).</p>
-        <Link href="/" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
+        <Link to="/" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
           ← Back to all events
         </Link>
       </div>
@@ -66,17 +64,17 @@ export function EventDetailClient({ eventId }: { eventId: string }) {
   }
 
   async function handleEditEvent(input: Parameters<typeof updateEvent>[1]) {
-    await updateEvent(event!.id, input);
+    await updateEvent(eventId, input);
   }
 
   async function handleDeleteEvent() {
-    await deleteEvent(event!.id);
+    await deleteEvent(eventId);
     setIsDeleteEventOpen(false);
-    router.push("/");
+    navigate("/");
   }
 
   async function handleAddStop(input: Parameters<typeof createStop>[1]) {
-    await createStop(event!.id, input);
+    await createStop(eventId, input);
   }
 
   async function handleEditStop(input: Parameters<typeof updateStop>[1]) {
@@ -96,12 +94,12 @@ export function EventDetailClient({ eventId }: { eventId: string }) {
   }
 
   async function handleUpload(fileName: string) {
-    return importStopsFromSpreadsheet(event!.id, fileName);
+    return importStopsFromSpreadsheet(eventId, fileName);
   }
 
   return (
     <div className="space-y-6">
-      <Link href="/" className="text-sm font-medium text-blue-600 hover:text-blue-800">
+      <Link to="/" className="text-sm font-medium text-blue-600 hover:text-blue-800">
         ← Back to all events
       </Link>
 

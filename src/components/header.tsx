@@ -1,7 +1,5 @@
-"use client";
-
-import Link from "next/link";
 import { useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useAdmin } from "@/lib/admin-context";
 import { AdminLoginModal } from "./admin-login-modal";
 
@@ -39,7 +37,10 @@ export function Header() {
   return (
     <header className="border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+        {/* NOTE: the logo button is a sibling of the <Link>, not nested inside
+            it — an <a> containing a <button> is invalid HTML and causes a
+            React hydration mismatch. */}
+        <div className="flex items-center gap-2 text-lg font-semibold text-gray-900">
           <button
             type="button"
             onClick={handleLogoClick}
@@ -49,8 +50,8 @@ export function Header() {
           >
             🧭
           </button>
-          <span>Yard Sale Mapper</span>
-        </Link>
+          <Link to="/">Yard Sale Mapper</Link>
+        </div>
 
         {isAdmin ? (
           <div className="flex items-center gap-3">

@@ -1,5 +1,3 @@
-"use client";
-
 import type { Stop } from "@/lib/types";
 
 interface MapPlaceholderProps {

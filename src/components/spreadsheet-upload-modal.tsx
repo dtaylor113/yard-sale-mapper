@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import type { ImportRow } from "@/lib/types";
 import { Modal } from "./modal";

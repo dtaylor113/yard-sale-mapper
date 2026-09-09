@@ -94,13 +94,13 @@ and they cost money. Two lightweight, mostly-free integration points instead:
 
 ```mermaid
 flowchart LR
-  subgraph Client [Frontend - Next.js/React]
+  subgraph Client [Frontend - React SPA / Vite]
     UI[Event CRUD UI]
     Upload[Spreadsheet Upload UI]
     MapView[Leaflet Map + Stop Checkboxes + Route Panel]
   end
 
-  subgraph Server [Backend API]
+  subgraph Server [Backend API - Node/Express]
     AdminAuth[Admin Login/Session Check]
     EventsAPI[Events/Stops REST API]
     ImportSvc[Spreadsheet Parser]
@@ -112,7 +112,7 @@ flowchart LR
   Geocoder[(Nominatim / pluggable geocoder)]
   Router[(Self-hosted OSRM + VROOM)]
 
-  UI -- triple-click reveals login --> AdminAuth
+  UI -- Shift+3 clicks reveals login --> AdminAuth
   AdminAuth -- session cookie --> EventsAPI
   UI --> EventsAPI
   Upload --> ImportSvc --> GeocodeSvc --> Geocoder
@@ -123,8 +123,11 @@ flowchart LR
 ```
 
 **Suggested stack**
-- **Frontend:** Next.js (React + TypeScript) — SSR, file-based routing, API routes
-  double as a lightweight backend for MVP.
+- **Frontend:** React + TypeScript **single-page app built with Vite**, routed with
+  React Router. Plain client-side rendering — no SSR, no hydration step.
+- **Backend:** a separate small **Node + Express** API service (added in Phase 1),
+  talking to Postgres and to the routing/geocoding engines. In dev, Vite proxies
+  `/api/*` to it so the frontend still sees one origin.
 - **Map:** `react-leaflet` + OSM/MapTiler tiles (swap to Google Maps JS SDK later
   behind a `MapProvider` interface if desired).
 - **Database:** PostgreSQL + **PostGIS** (geospatial indexing on stop coordinates,
@@ -138,17 +141,31 @@ flowchart LR
   optionally an **ORS `/optimization`** implementation behind the same interface
   for quick local prototyping before the self-hosted engine is stood up.
 - **Admin access:** No public accounts, no per-event owner tokens. A single shared
-  **admin password** gates all CRUD. UI convenience: triple-click a hidden icon/logo
-  to reveal a login prompt (keeps the normal browsing UI clutter-free for regular
+  **admin password** gates all CRUD. UI convenience: hold Shift and click the logo
+  three times to reveal a login prompt (keeps the normal browsing UI clutter-free for regular
   visitors). Under the hood: a `POST /api/admin/login` route checks the password
   (hashed, stored in an env var) and sets an httpOnly, signed session cookie.
   Every mutating API route (`Event`/`Stop` create/update/delete) checks that
-  session server-side — **the triple-click is just UI sugar to reach the prompt;
+  session server-side — **the Shift+click gesture is just UI sugar to reach the prompt;
   the real security boundary is the server-side session check**, so it can't be
   bypassed by calling the API directly. Regular visitors get read-only browsing +
   route planning with no login at all.
-- **Hosting:** Vercel (frontend + API routes) + Neon/Supabase (managed Postgres w/ PostGIS)
-  + a small VPS/Fly.io/Render box for the self-hosted OSRM+VROOM containers.
+- **Hosting:** any static host for the built SPA (Netlify/Cloudflare Pages/Vercel —
+  it's just `dist/`, with a catch-all rewrite to `index.html` so deep links work)
+  + Neon/Supabase (managed Postgres w/ PostGIS) + a small VPS/Fly.io/Render box
+  running the Express API and the self-hosted OSRM+VROOM containers.
+
+> **Decision (confirmed): plain React SPA, not Next.js.** The project started on
+> Next.js 16 and hit two stability problems on Windows in the first day: the
+> Turbopack dev server pegging CPU/RAM and hanging on "Compiling…", and an SSR
+> **hydration mismatch** whose dev-mode error overlay silently swallowed clicks
+> on the page underneath. Neither was worth eating, because Next was buying us
+> nothing: every page was already `"use client"` with client-side state, so
+> there was no SSR benefit to offset the SSR/hydration/bleeding-edge cost. Vite
+> + React Router removes that entire class of bug (there is no server render to
+> mismatch against) and builds the whole app in well under a second. SEO on
+> public event pages is the one real trade-off; if that ever matters we can
+> pre-render those pages or revisit, but it isn't a v1 goal.
 
 ---
 
@@ -181,14 +198,20 @@ ImportJob  (optional, tracks spreadsheet uploads)
 ## 5. Phased Implementation Plan
 
 ### Phase 0 — Project setup
-- [ ] Init Next.js + TypeScript app, linting/formatting, repo/CI skeleton.
+- [x] Init Vite + React + TypeScript SPA, Tailwind, ESLint, repo skeleton.
+- [x] **UI-only mockup pass:** every page, modal, and navigation path built
+      against mock data and stubbed async functions in `src/lib/data-provider.tsx`,
+      so the screens can be agreed on before any backend exists. Each stub already
+      has the async signature its real API call will have — wiring the backend
+      should only change the *insides* of those functions.
 - [ ] Provision Postgres (+ PostGIS) — local Docker Compose for dev.
 - [ ] Set up ORM (Prisma/Drizzle) with `Event`/`Stop` schema + migrations.
 
 ### Phase 1 — Admin gate + Event & Stop CRUD (no map yet)
+- [ ] Stand up the Express API service; point Vite's dev proxy at it.
 - [ ] Admin login: `POST /api/admin/login` checks a hashed password (env var),
       sets an httpOnly signed session cookie on success; `POST /api/admin/logout`.
-- [ ] Hidden UI trigger (e.g. triple-click the logo/icon) reveals the login prompt.
+- [x] Hidden UI trigger (Shift + 3 clicks on the logo) reveals the login prompt.
 - [ ] Middleware/helper to require a valid admin session on every mutating route.
 - [ ] API: create/list/get/update/delete Event — mutations require admin session;
       reads are public.
@@ -255,7 +278,7 @@ ImportJob  (optional, tracks spreadsheet uploads)
 ## 6. Open Questions
 
 - ~~Do event owners need real accounts, or is a shareable secret edit-link enough for v1?~~
-  **Resolved:** neither — a single shared admin password (triple-click-to-reveal
+  **Resolved:** neither — a single shared admin password (Shift+3-clicks-to-reveal
   login) gates all CRUD; no per-user accounts or per-event tokens for v1.
 - ~~What's the realistic max stop count per event?~~ **Resolved:** town-wide events
   routinely exceed 25 stops and likely exceed ORS's 50-stop free-tier cap too — moved

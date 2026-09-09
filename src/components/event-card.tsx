@@ -1,6 +1,4 @@
-"use client";
-
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import type { YardSaleEvent } from "@/lib/types";
 
 interface EventCardProps {
@@ -22,7 +20,7 @@ export function EventCard({ event, stopCount, isAdmin, onEdit, onDelete }: Event
     <div className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <Link href={`/events/${event.id}`} className="text-lg font-semibold text-gray-900 hover:text-blue-700">
+          <Link to={`/events/${event.id}`} className="text-lg font-semibold text-gray-900 hover:text-blue-700">
             {event.name}
           </Link>
           <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[event.status]}`}>
@@ -40,7 +38,7 @@ export function EventCard({ event, stopCount, isAdmin, onEdit, onDelete }: Event
         </p>
         <p className="mt-2 line-clamp-2 text-sm text-gray-600">{event.description}</p>
         <Link
-          href={`/events/${event.id}`}
+          to={`/events/${event.id}`}
           className="mt-3 inline-block text-sm font-medium text-blue-600 hover:text-blue-800"
         >
           View event & plan route →

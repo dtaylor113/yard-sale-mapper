@@ -1,5 +1,3 @@
-"use client";
-
 import { useState } from "react";
 import { useData } from "@/lib/data-context";
 import { buildGoogleMapsRouteLegs } from "@/lib/google-maps";
