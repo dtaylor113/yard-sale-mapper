@@ -45,7 +45,7 @@ function StopFormFields({ onClose, onSubmit, initialStop }: Omit<StopFormModalPr
           required
           value={form.rawAddress}
           onChange={(e) => setForm((f) => ({ ...f, rawAddress: e.target.value }))}
-          placeholder="123 Maple St, Maple Grove, MA"
+          placeholder="123 High St, Clinton, MA 01510"
           className="field"
         />
         <p className="field-hint">Geocoding happens automatically once the backend is wired up (Phase 2).</p>

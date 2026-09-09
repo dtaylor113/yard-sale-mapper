@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { buildGoogleMapsRouteLegs, MAX_STOPS_PER_LEG } from "./google-maps";
 
-const HOME = "9 Horseshoe Ln, Maple Grove, MA";
+const HOME = "9 Union St, Clinton, MA 01510";
 
 function makeStops(count: number) {
-  return Array.from({ length: count }, (_, i) => `${100 + i} Test St, Maple Grove, MA`);
+  return Array.from({ length: count }, (_, i) => `${100 + i} High St, Clinton, MA 01510`);
 }
 
 function parseLeg(url: string) {

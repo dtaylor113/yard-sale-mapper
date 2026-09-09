@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
-import { MOCK_EVENTS, MOCK_STOPS, MOCK_TOWN_CENTER } from "./mock-data";
+import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS, mockImportedAddress } from "./mock-data";
 import type {
   CalculateRouteParams,
   EventInput,
@@ -25,9 +25,20 @@ import type {
 const FAKE_NETWORK_DELAY_MS = 400;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Stands in for the user's real geocoded start address until Phase 4 wires up
-// the routing engine, so the mock route math has *something* to measure from.
-const TOWN_CENTER = MOCK_TOWN_CENTER;
+/**
+ * Stands in for the user's geocoded start address until Phase 4 wires up real
+ * routing. Sits a little outside the event's own stops, so the fake distances
+ * stay plausible whichever town the event is in — the typed-in address can't
+ * be turned into coordinates without a geocoder.
+ */
+function pseudoStartPoint(stops: Stop[]) {
+  const plotted = stops.filter((s) => s.lat != null && s.lng != null);
+  if (plotted.length === 0) return DEFAULT_MAP_CENTER;
+
+  const lat = plotted.reduce((sum, s) => sum + s.lat!, 0) / plotted.length;
+  const lng = plotted.reduce((sum, s) => sum + s.lng!, 0) / plotted.length;
+  return { lat: lat + 0.012, lng: lng - 0.012 };
+}
 
 function haversineMiles(a: { lat: number | null; lng: number | null }, b: { lat: number | null; lng: number | null }) {
   if (a.lat == null || a.lng == null || b.lat == null || b.lng == null) {
@@ -158,7 +169,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     const newStops: Stop[] = [];
     for (let i = 0; i < rowCount; i++) {
       const failed = i % 5 === 4; // roughly 1 in 5 rows "fails" to geocode
-      const rawAddress = `${200 + i * 3} Import Row ${i + 1} Ln, Maple Grove, MA`;
+      const { rawAddress, lat, lng } = mockImportedAddress(eventId, i);
       if (failed) {
         rows.push({ rowNumber: i + 1, rawAddress, status: "failed", error: "Could not geocode address" });
       } else {
@@ -166,8 +177,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           id: newId("stop"),
           eventId,
           rawAddress,
-          lat: TOWN_CENTER.lat + (i % 7) * 0.002,
-          lng: TOWN_CENTER.lng + (i % 5) * 0.002,
+          lat,
+          lng,
           geocodeStatus: "ok",
         };
         newStops.push(stop);
@@ -185,9 +196,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const selected = allStops.filter((s) => selectedStopIds.includes(s.id));
       const ordered = nearestNeighborOrder(selected);
 
+      const start = pseudoStartPoint(allStops);
       const legs: RouteLeg[] = [];
       let totalMiles = 0;
-      let cursor: { lat: number | null; lng: number | null } = TOWN_CENTER;
+      let cursor: { lat: number | null; lng: number | null } = start;
       let fromLabel = startAddress.trim() || "Starting address";
 
       for (const stop of ordered) {
@@ -205,7 +217,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Final leg back home.
       if (ordered.length > 0) {
-        const milesHome = haversineMiles(cursor, TOWN_CENTER) + 0.4;
+        const milesHome = haversineMiles(cursor, start) + 0.4;
         totalMiles += milesHome;
         legs.push({
           fromLabel,

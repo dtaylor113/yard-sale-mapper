@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { LatLngTuple } from "leaflet";
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-import { MOCK_TOWN_CENTER } from "@/lib/mock-data";
+import { DEFAULT_MAP_CENTER } from "@/lib/mock-data";
 import type { Stop } from "@/lib/types";
 
 interface StopMapProps {
@@ -61,7 +61,7 @@ export function StopMap({ stops, selectedIds, onToggle, height = "26rem" }: Stop
         style={{ height }}
       >
         <MapContainer
-          center={[MOCK_TOWN_CENTER.lat, MOCK_TOWN_CENTER.lng]}
+          center={[DEFAULT_MAP_CENTER.lat, DEFAULT_MAP_CENTER.lng]}
           zoom={14}
           scrollWheelZoom={false}
           className="h-full w-full"
@@ -91,11 +91,6 @@ export function StopMap({ stops, selectedIds, onToggle, height = "26rem" }: Stop
                     <p className="text-sm font-medium text-ink">{stop.rawAddress}</p>
                     {stop.label && <span className="chip chip-accent">{stop.label}</span>}
                     {stop.notes && <p className="text-xs text-ink-muted">{stop.notes}</p>}
-                    {stop.geocodeStatus === "failed" && (
-                      <p className="text-xs text-danger">
-                        ⚠ This address didn&apos;t geocode cleanly, so its position is approximate.
-                      </p>
-                    )}
                     <button
                       type="button"
                       onClick={() => onToggle(stop.id)}

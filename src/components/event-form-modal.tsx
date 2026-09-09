@@ -56,7 +56,7 @@ function EventFormFields({
           required
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-          placeholder="e.g. Maple Grove Town-Wide Yard Sale"
+          placeholder="e.g. Clinton Town-Wide Yard Sale"
           className="field"
         />
       </div>

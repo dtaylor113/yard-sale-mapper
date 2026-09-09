@@ -65,7 +65,7 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
         <input
           value={startAddress}
           onChange={(e) => setStartAddress(e.target.value)}
-          placeholder="e.g. 42 Home St, Maple Grove, MA"
+          placeholder="e.g. 42 Union St, Clinton, MA 01510"
           className="field"
         />
       </div>
