@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
-import { MOCK_EVENTS, MOCK_STOPS } from "./mock-data";
+import { MOCK_EVENTS, MOCK_STOPS, MOCK_TOWN_CENTER } from "./mock-data";
 import type {
   CalculateRouteParams,
   EventInput,
@@ -25,10 +25,9 @@ import type {
 const FAKE_NETWORK_DELAY_MS = 400;
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Fictional town center used only so the map-placeholder / mock route math
-// has *something* to measure distances against, standing in for a real
-// geocoded start address until Phase 4's routing engine is wired up.
-const TOWN_CENTER = { lat: 42.361, lng: -71.058 };
+// Stands in for the user's real geocoded start address until Phase 4 wires up
+// the routing engine, so the mock route math has *something* to measure from.
+const TOWN_CENTER = MOCK_TOWN_CENTER;
 
 function haversineMiles(a: { lat: number | null; lng: number | null }, b: { lat: number | null; lng: number | null }) {
   if (a.lat == null || a.lng == null || b.lat == null || b.lng == null) {

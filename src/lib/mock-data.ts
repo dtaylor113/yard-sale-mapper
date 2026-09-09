@@ -25,14 +25,21 @@ const STREET_NAMES = [
 
 const STREET_SUFFIXES = ["St", "Ave", "Ln", "Dr", "Ct", "Way"];
 
-// Deterministic pseudo-scatter around a fictional town center, purely so the
-// map placeholder has something plausible to plot. Not real geocoding.
+// "Maple Grove" is fictional, so its stops are scattered over a real
+// residential stretch of the Boston suburbs — that way the map tiles show a
+// plausible street grid for a town-wide yard sale instead of open water or
+// downtown high-rises. Shared with the mock route math in `data-provider.tsx`
+// so both agree on where town is.
+export const MOCK_TOWN_CENTER = { lat: 42.2968, lng: -71.2924 };
+
+// Deterministic pseudo-scatter around the town center, purely so the map has
+// something plausible to plot. Not real geocoding.
 function scatter(index: number, spread: number) {
   const angle = index * 2.399963; // golden-angle-ish spacing, deterministic
   const radius = spread * Math.sqrt((index % 23) / 23);
   return {
-    lat: 42.361 + radius * Math.cos(angle),
-    lng: -71.058 + radius * Math.sin(angle) * 1.3,
+    lat: MOCK_TOWN_CENTER.lat + radius * Math.cos(angle),
+    lng: MOCK_TOWN_CENTER.lng + radius * Math.sin(angle) * 1.3,
   };
 }
 

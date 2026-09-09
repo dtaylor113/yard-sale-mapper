@@ -53,6 +53,27 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Leaflet ships its own chrome; nudge it toward the app's theme. Loaded after
+   leaflet.css in the bundle, so these win. */
+.leaflet-container {
+  font-family: var(--font-sans);
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius-field);
+  box-shadow: var(--shadow-card);
+}
+
+.leaflet-bar {
+  border-radius: var(--radius-field);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+.leaflet-bar a {
+  color: var(--color-ink);
+}
+
 @layer components {
   /* Pill buttons, the way apple.com does its calls to action. */
   .btn {

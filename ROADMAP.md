@@ -254,18 +254,32 @@ The one piece of non-stub production logic today is `src/lib/google-maps.ts`
       too irregular); the geocoder is the validator. On no match, say so; on multiple
       matches, offer a "did you mean…?" picker before routing.
 
-### Phase 3 — Map visualization + stop selection
-- [ ] Integrate `react-leaflet` + tile provider; render an event's stops as pins.
-- [ ] Popups with stop label/address; basic clustering if many stops.
-- [ ] **Selectable stops:** checkbox per pin (on the map popup and in an
-      accompanying list panel, kept in sync both ways), plus "select all" /
-      "select none" convenience controls. Selection state lives client-side
-      (e.g. a `Set<stopId>`) until the user is ready to route.
-- [x] Stop list panel with per-stop checkboxes, a selected/total count, and
-      select-all / select-none controls.
-- [x] Placeholder map box (`src/components/map-placeholder.tsx`) plotting pins by
-      naive lat/lng-to-percentage math — no projection, no tiles. Replaced by the
-      real Leaflet map above.
+### Phase 3 — Map visualization + stop selection ✅
+- [x] `react-leaflet` + OpenStreetMap tiles in `src/components/stop-map.tsx`,
+      auto-framed on the event's stops. Replaces the old fake placeholder box.
+- [x] Popups per stop: address, label, notes, and a warning when the stop's
+      coordinates are approximate because geocoding failed.
+- [x] **Selectable stops, synced both ways.** The pin popup has an "Add to /
+      Remove from route" button and the list panel has a checkbox; both drive the
+      same `Set<stopId>` held in `event-detail-page.tsx`, so the map's fill color
+      and the list's checkboxes can never disagree. Plus select-all / select-none
+      and a selected/total count.
+- [x] Stops with no coordinates are counted below the map rather than silently
+      dropped ("2 stops could not be placed on the map").
+- [ ] Marker clustering. Not needed yet — the largest mock event is 32 stops and
+      reads fine. Worth revisiting only if real events get dense enough to overlap.
+
+Two notes for later:
+- **Tiles:** we're pointing at OSM's public tile server, which is fine for dev
+  and light traffic but explicitly *not* for production volume under their usage
+  policy. Move to MapTiler or similar before launch. Attribution is already in
+  place, as their license requires.
+- **Markers are SVG circles, not Leaflet's default pin images.** Circles carry
+  the selected/unselected state as fill color and avoid the broken-marker-icon
+  problem bundlers have with Leaflet's image assets. The trade-off is that SVG
+  paths aren't keyboard focusable, so the map isn't operable by keyboard — the
+  stop list's real checkboxes are the accessible path to the same actions, which
+  is why that list should stay rather than becoming map-only.
 
 ### Phase 4 — Self-hosted routing engine + route optimization ("the circuit")
 - [ ] Stand up self-hosted routing via Docker Compose: **OSRM** (regional OSM

@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAdmin } from "@/lib/admin-context";
 import { useData } from "@/lib/data-context";
 import type { Stop } from "@/lib/types";
-import { MapPlaceholder } from "@/components/map-placeholder";
+import { StopMap } from "@/components/stop-map";
 import { StopList } from "@/components/stop-list";
 import { RoutePlanner } from "@/components/route-planner";
 import { EventFormModal } from "@/components/event-form-modal";
@@ -132,7 +132,7 @@ export function EventDetailPage() {
         )}
       </div>
 
-      <MapPlaceholder stops={stops} selectedStopIds={selectedIds} />
+      <StopMap stops={stops} selectedIds={selectedIds} onToggle={toggleStop} />
 
       {isAdmin && (
         <div className="flex gap-2">
