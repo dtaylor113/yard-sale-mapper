@@ -17,6 +17,8 @@ const STATUS_CHIPS: Record<string, string> = {
   archived: "chip chip-caution",
 };
 
+const NOTHING_DESELECTED: ReadonlySet<string> = new Set();
+
 export function EventDetailPage() {
   const { eventId = "" } = useParams();
   const navigate = useNavigate();
@@ -27,7 +29,21 @@ export function EventDetailPage() {
   const event = getEvent(eventId);
   const stops = getStops(eventId);
 
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Tracking what the visitor *unchecked* rather than what they checked keeps
+  // "everything is selected until you say otherwise" true for stops that show
+  // up later too, so a spreadsheet import doesn't land 40 unchecked rows in
+  // the middle of an otherwise fully selected list.
+  const [selection, setSelection] = useState({ eventId, deselected: new Set<string>() });
+
+  // Moving between events reuses this component, so the previous event's
+  // unchecked stops have to be cleared out rather than carried over.
+  if (selection.eventId !== eventId) {
+    setSelection({ eventId, deselected: new Set() });
+  }
+
+  const deselected = selection.eventId === eventId ? selection.deselected : NOTHING_DESELECTED;
+  const selectedIds = new Set(stops.filter((s) => !deselected.has(s.id)).map((s) => s.id));
+
   const [isEditEventOpen, setIsEditEventOpen] = useState(false);
   const [isDeleteEventOpen, setIsDeleteEventOpen] = useState(false);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -47,20 +63,20 @@ export function EventDetailPage() {
   }
 
   function toggleStop(id: string) {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
+    setSelection((prev) => {
+      const next = new Set(prev.deselected);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      return next;
+      return { ...prev, deselected: next };
     });
   }
 
   function selectAll() {
-    setSelectedIds(new Set(stops.map((s) => s.id)));
+    setSelection((prev) => ({ ...prev, deselected: new Set() }));
   }
 
   function selectNone() {
-    setSelectedIds(new Set());
+    setSelection((prev) => ({ ...prev, deselected: new Set(stops.map((s) => s.id)) }));
   }
 
   async function handleEditEvent(input: Parameters<typeof updateEvent>[1]) {
@@ -85,11 +101,7 @@ export function EventDetailPage() {
   async function handleConfirmDeleteStop() {
     if (!deletingStop) return;
     await deleteStop(deletingStop.id);
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      next.delete(deletingStop.id);
-      return next;
-    });
+    // No selection cleanup needed: it's derived from the stops that still exist.
     setDeletingStop(null);
   }
 
