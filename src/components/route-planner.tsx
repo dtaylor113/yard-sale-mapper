@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useData } from "@/lib/data-context";
-import { buildGoogleMapsRouteLegs } from "@/lib/google-maps";
+import { buildGoogleMapsRouteLegs, type RouteLegLink } from "@/lib/google-maps";
 import type { RouteResult, Stop } from "@/lib/types";
 
 interface RoutePlannerProps {
@@ -11,6 +11,13 @@ interface RoutePlannerProps {
 
 function formatMiles(meters: number) {
   return `${(meters / 1609.34).toFixed(1)} mi`;
+}
+
+/** Which stops a leg covers, numbered to match the ordered list above it. */
+function describeLegCoverage(leg: RouteLegLink) {
+  if (leg.stopCount === 0) return "drive home";
+  if (leg.stopCount === 1) return `stop ${leg.firstStop}`;
+  return `stops ${leg.firstStop}–${leg.lastStop}`;
 }
 
 function formatDuration(seconds: number) {
@@ -129,20 +136,23 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
           </ol>
 
           <div className="space-y-2">
-            {googleMapsLegs.map((url, index) => (
+            {googleMapsLegs.map((leg) => (
               <a
-                key={url}
-                href={url}
+                key={leg.url}
+                href={leg.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-secondary w-full"
               >
-                Open in Google Maps{googleMapsLegs.length > 1 ? ` (leg ${index + 1} of ${googleMapsLegs.length})` : ""}
+                Open in Google Maps
+                {googleMapsLegs.length > 1 ? ` (${describeLegCoverage(leg)})` : ""}
               </a>
             ))}
             {googleMapsLegs.length > 1 && (
               <p className="text-center text-xs text-ink-subtle">
-                Split into {googleMapsLegs.length} legs — Google Maps caps navigation at ~9 stops per link.
+                Google Maps caps a single link at ~10 addresses, so the drive is split into{" "}
+                {googleMapsLegs.length} legs. Open them in order — each one picks up where the
+                last left off.
               </p>
             )}
           </div>
