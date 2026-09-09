@@ -57,70 +57,74 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
   const googleMapsLegs = result ? buildGoogleMapsRouteLegs(startAddress, orderedStops.map((s) => s.rawAddress)) : [];
 
   return (
-    <div className="space-y-4 rounded-lg border border-gray-200 bg-white p-4">
-      <h2 className="text-base font-semibold text-gray-900">Plan your route</h2>
+    <div className="card space-y-5 p-5">
+      <h2 className="text-[17px] font-semibold tracking-tight text-ink">Plan your route</h2>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Your starting address</label>
+        <label className="field-label">Your starting address</label>
         <input
           value={startAddress}
           onChange={(e) => setStartAddress(e.target.value)}
           placeholder="e.g. 42 Home St, Maple Grove, MA"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="field"
         />
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-danger">{error}</p>}
 
       <button
         type="button"
         onClick={handleCalculate}
         disabled={isCalculating}
-        className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
+        className="btn btn-primary btn-lg w-full"
       >
         {isCalculating ? "Calculating best route…" : `Calculate Route (${selectedCount} stop${selectedCount === 1 ? "" : "s"} selected)`}
       </button>
 
       {result && (
-        <div className="space-y-4 border-t border-gray-100 pt-4">
-          <div className="flex flex-wrap gap-4 text-sm">
+        <div className="space-y-5 border-t border-hairline pt-5">
+          <dl className="grid grid-cols-3 gap-3 rounded-field bg-surface-sunken p-4 text-center">
             <div>
-              <span className="text-gray-500">Total distance: </span>
-              <span className="font-semibold text-gray-900">{formatMiles(result.totalDistanceMeters)}</span>
+              <dt className="text-xs text-ink-muted">Total distance</dt>
+              <dd className="mt-1 text-lg font-semibold tracking-tight text-ink">
+                {formatMiles(result.totalDistanceMeters)}
+              </dd>
             </div>
             <div>
-              <span className="text-gray-500">Est. drive time: </span>
-              <span className="font-semibold text-gray-900">{formatDuration(result.totalDurationSeconds)}</span>
+              <dt className="text-xs text-ink-muted">Est. drive time</dt>
+              <dd className="mt-1 text-lg font-semibold tracking-tight text-ink">
+                {formatDuration(result.totalDurationSeconds)}
+              </dd>
             </div>
             <div>
-              <span className="text-gray-500">Stops: </span>
-              <span className="font-semibold text-gray-900">{orderedStops.length}</span>
+              <dt className="text-xs text-ink-muted">Stops</dt>
+              <dd className="mt-1 text-lg font-semibold tracking-tight text-ink">{orderedStops.length}</dd>
             </div>
-          </div>
+          </dl>
 
-          <ol className="space-y-2">
-            <li className="flex items-center gap-2 text-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-800 text-xs font-semibold text-white">
+          <ol className="space-y-2.5">
+            <li className="flex items-center gap-3 text-sm">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
                 S
               </span>
-              <span className="text-gray-700">{startAddress} (start)</span>
+              <span className="text-ink-muted">{startAddress} (start)</span>
             </li>
             {orderedStops.map((stop, index) => (
-              <li key={stop.id} className="flex items-center gap-2 text-sm">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white">
+              <li key={stop.id} className="flex items-center gap-3 text-sm">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-semibold text-white">
                   {index + 1}
                 </span>
-                <span className="text-gray-700">
+                <span className="text-ink">
                   {stop.rawAddress}
                   {stop.label ? ` — ${stop.label}` : ""}
                 </span>
               </li>
             ))}
-            <li className="flex items-center gap-2 text-sm">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-800 text-xs font-semibold text-white">
+            <li className="flex items-center gap-3 text-sm">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
                 🏁
               </span>
-              <span className="text-gray-700">{startAddress} (return trip)</span>
+              <span className="text-ink-muted">{startAddress} (return trip)</span>
             </li>
           </ol>
 
@@ -131,13 +135,13 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full rounded-md border border-blue-200 bg-blue-50 px-4 py-2.5 text-center text-sm font-medium text-blue-700 hover:bg-blue-100"
+                className="btn btn-secondary w-full"
               >
                 Open in Google Maps{googleMapsLegs.length > 1 ? ` (leg ${index + 1} of ${googleMapsLegs.length})` : ""}
               </a>
             ))}
             {googleMapsLegs.length > 1 && (
-              <p className="text-center text-xs text-gray-400">
+              <p className="text-center text-xs text-ink-subtle">
                 Split into {googleMapsLegs.length} legs — Google Maps caps navigation at ~9 stops per link.
               </p>
             )}

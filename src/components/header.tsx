@@ -35,12 +35,11 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-gray-200 bg-white">
-      <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+    <header className="sticky top-0 z-40 border-b border-hairline bg-surface/75 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-5xl items-center justify-between px-5 py-3.5">
         {/* NOTE: the logo button is a sibling of the <Link>, not nested inside
-            it — an <a> containing a <button> is invalid HTML and causes a
-            React hydration mismatch. */}
-        <div className="flex items-center gap-2 text-lg font-semibold text-gray-900">
+            it — an <a> containing a <button> is invalid HTML. */}
+        <div className="flex items-center gap-2.5 text-[17px] font-semibold tracking-tight text-ink">
           <button
             type="button"
             onClick={handleLogoClick}
@@ -50,19 +49,15 @@ export function Header() {
           >
             🧭
           </button>
-          <Link to="/">Yard Sale Mapper</Link>
+          <Link to="/" className="transition-colors duration-150 hover:text-accent">
+            Yard Sale Mapper
+          </Link>
         </div>
 
         {isAdmin ? (
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
-              Admin mode
-            </span>
-            <button
-              type="button"
-              onClick={logout}
-              className="text-sm font-medium text-gray-500 hover:text-gray-800"
-            >
+            <span className="chip chip-caution">Admin mode</span>
+            <button type="button" onClick={logout} className="btn btn-secondary btn-sm">
               Log out
             </button>
           </div>

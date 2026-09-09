@@ -13,29 +13,29 @@ export function Modal({ title, isOpen, onClose, children, widthClassName = "max-
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/25 p-4 backdrop-blur-sm"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className={`w-full ${widthClassName} max-h-[90vh] overflow-y-auto rounded-lg bg-white shadow-xl`}
+        className={`w-full ${widthClassName} max-h-[90vh] overflow-y-auto rounded-2xl bg-surface shadow-overlay`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={title}
       >
-        <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
+          <h2 className="text-[17px] font-semibold tracking-tight text-ink">{title}</h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-full p-1.5 text-ink-subtle transition-colors duration-150 hover:bg-canvas hover:text-ink"
             aria-label="Close"
           >
             ✕
           </button>
         </div>
-        <div className="px-5 py-4">{children}</div>
+        <div className="px-6 py-5">{children}</div>
       </div>
     </div>
   );

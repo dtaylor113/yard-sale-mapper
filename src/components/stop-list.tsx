@@ -13,57 +13,55 @@ interface StopListProps {
 
 export function StopList({ stops, selectedIds, onToggle, onSelectAll, onSelectNone, isAdmin, onEdit, onDelete }: StopListProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white">
-      <div className="flex items-center justify-between border-b border-gray-200 px-4 py-2.5">
-        <span className="text-sm font-medium text-gray-700">
+    <div className="card overflow-hidden">
+      <div className="flex items-center justify-between border-b border-hairline px-5 py-3">
+        <span className="text-sm font-medium text-ink">
           {selectedIds.size} of {stops.length} selected
         </span>
-        <div className="flex gap-3 text-xs font-medium">
-          <button type="button" onClick={onSelectAll} className="text-blue-600 hover:text-blue-800">
+        <div className="flex gap-4 text-xs">
+          <button type="button" onClick={onSelectAll} className="btn-text">
             Select all
           </button>
-          <button type="button" onClick={onSelectNone} className="text-gray-500 hover:text-gray-700">
+          <button type="button" onClick={onSelectNone} className="btn-text text-ink-muted hover:text-ink">
             Select none
           </button>
         </div>
       </div>
 
-      <ul className="max-h-96 divide-y divide-gray-100 overflow-y-auto">
+      <ul className="max-h-96 divide-y divide-hairline overflow-y-auto">
         {stops.map((stop) => (
-          <li key={stop.id} className="flex items-start gap-3 px-4 py-2.5">
+          <li key={stop.id} className="flex items-start gap-3.5 px-5 py-3 transition-colors duration-150 hover:bg-surface-sunken">
             <input
               type="checkbox"
               checked={selectedIds.has(stop.id)}
               onChange={() => onToggle(stop.id)}
-              className="mt-1 h-4 w-4 shrink-0 accent-blue-600"
+              className="mt-0.5 h-[18px] w-[18px] shrink-0 rounded accent-accent"
             />
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-sm text-gray-900">{stop.rawAddress}</span>
-                {stop.label && (
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{stop.label}</span>
-                )}
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-ink">{stop.rawAddress}</span>
+                {stop.label && <span className="chip chip-accent">{stop.label}</span>}
                 {stop.geocodeStatus === "failed" && (
-                  <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-600" title="Could not geocode this address">
+                  <span className="chip chip-danger" title="Could not geocode this address">
                     ⚠ geocode failed
                   </span>
                 )}
               </div>
-              {stop.notes && <p className="mt-0.5 text-xs text-gray-500">{stop.notes}</p>}
+              {stop.notes && <p className="mt-1 text-xs text-ink-muted">{stop.notes}</p>}
             </div>
             {isAdmin && (
-              <div className="flex shrink-0 gap-2 text-xs font-medium">
-                <button type="button" onClick={() => onEdit(stop)} className="text-gray-500 hover:text-gray-800">
+              <div className="flex shrink-0 gap-3 text-xs">
+                <button type="button" onClick={() => onEdit(stop)} className="btn-text text-ink-muted hover:text-ink">
                   Edit
                 </button>
-                <button type="button" onClick={() => onDelete(stop)} className="text-red-500 hover:text-red-700">
+                <button type="button" onClick={() => onDelete(stop)} className="btn-text text-danger hover:text-danger-hover">
                   Delete
                 </button>
               </div>
             )}
           </li>
         ))}
-        {stops.length === 0 && <li className="px-4 py-6 text-center text-sm text-gray-400">No stops yet.</li>}
+        {stops.length === 0 && <li className="px-5 py-10 text-center text-sm text-ink-subtle">No stops yet.</li>}
       </ul>
     </div>
   );

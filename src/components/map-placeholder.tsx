@@ -29,11 +29,11 @@ export function MapPlaceholder({ stops, selectedStopIds, height = "18rem" }: Map
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-lg border-2 border-dashed border-gray-300 bg-gradient-to-br from-green-50 to-blue-50"
+      className="relative w-full overflow-hidden rounded-card border border-hairline bg-gradient-to-br from-[#eef4ec] to-[#e6eef7] shadow-card"
       style={{ height }}
     >
-      <span className="absolute left-2 top-2 rounded bg-white/80 px-2 py-1 text-xs font-medium text-gray-500">
-        [Map Display — illustrative placeholder, not a real map]
+      <span className="absolute left-3 top-3 rounded-full bg-surface/80 px-3 py-1 text-xs font-medium text-ink-muted backdrop-blur-sm">
+        Map Display — illustrative placeholder, not a real map
       </span>
 
       {withCoords.map((stop) => {
@@ -55,7 +55,7 @@ export function MapPlaceholder({ stops, selectedStopIds, height = "18rem" }: Map
       })}
 
       {withCoords.length === 0 && (
-        <div className="flex h-full items-center justify-center text-sm text-gray-400">No stops to show yet</div>
+        <div className="flex h-full items-center justify-center text-sm text-ink-subtle">No stops to show yet</div>
       )}
     </div>
   );

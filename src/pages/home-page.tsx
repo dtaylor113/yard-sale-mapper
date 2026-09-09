@@ -34,31 +34,27 @@ export function HomePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8">
+      <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Yard Sale Events</h1>
-          <p className="mt-1 text-sm text-gray-500">
+          <h1 className="text-3xl font-semibold tracking-tight text-ink">Yard Sale Events</h1>
+          <p className="mt-2 text-[15px] text-ink-muted">
             Pick an event to see participating addresses and plan your driving route.
           </p>
         </div>
         {isAdmin && (
-          <button
-            type="button"
-            onClick={() => setIsCreateOpen(true)}
-            className="shrink-0 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
+          <button type="button" onClick={() => setIsCreateOpen(true)} className="btn btn-primary shrink-0">
             + New Event
           </button>
         )}
       </div>
 
       {visibleEvents.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center text-sm text-gray-500">
+        <div className="rounded-card border border-dashed border-hairline bg-surface p-12 text-center text-sm text-ink-muted">
           No events yet.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {visibleEvents.map((event) => (
             <EventCard
               key={event.id}

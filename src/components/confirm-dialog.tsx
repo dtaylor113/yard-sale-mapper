@@ -21,21 +21,15 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <Modal title={title} isOpen={isOpen} onClose={onCancel} widthClassName="max-w-sm">
-      <p className="text-sm text-gray-600">{message}</p>
-      <div className="mt-5 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
+      <p className="text-sm leading-relaxed text-ink-muted">{message}</p>
+      <div className="mt-6 flex justify-end gap-2">
+        <button type="button" onClick={onCancel} className="btn btn-secondary">
           Cancel
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className={`rounded-md px-3 py-1.5 text-sm font-medium text-white ${
-            danger ? "bg-red-600 hover:bg-red-700" : "bg-blue-600 hover:bg-blue-700"
-          }`}
+          className={`btn ${danger ? "btn-danger" : "btn-primary"}`}
         >
           {confirmLabel}
         </button>

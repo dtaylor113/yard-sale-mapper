@@ -10,9 +10,9 @@ export function App() {
   return (
     <AdminProvider>
       <DataProvider>
-        <div className="flex min-h-full flex-col bg-gray-50 text-gray-900">
+        <div className="flex min-h-full flex-col bg-canvas text-ink">
           <Header />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+          <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:py-12">
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/events/:eventId" element={<EventDetailPage />} />

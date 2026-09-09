@@ -30,7 +30,7 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
   return (
     <Modal title="Admin Login" isOpen={isOpen} onClose={onClose} widthClassName="max-w-sm">
       <form onSubmit={handleSubmit} className="space-y-3">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm leading-relaxed text-ink-muted">
           Enter the admin password to create, edit, or delete events and stops.
         </p>
         <input
@@ -39,22 +39,18 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Admin password"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="field"
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <p className="text-xs text-gray-400">(Mockup hint: the demo password is &quot;yardsale&quot;.)</p>
-        <div className="flex justify-end gap-2 pt-1">
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+        {error && <p className="text-sm text-danger">{error}</p>}
+        <p className="field-hint">(Mockup hint: the demo password is &quot;yardsale&quot;.)</p>
+        <div className="flex justify-end gap-2 pt-2">
+          <button type="button" onClick={onClose} className="btn btn-secondary">
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || password.length === 0}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            className="btn btn-primary"
           >
             {isSubmitting ? "Checking…" : "Log in"}
           </button>

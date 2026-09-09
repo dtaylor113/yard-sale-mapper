@@ -11,10 +11,10 @@ import { StopFormModal } from "@/components/stop-form-modal";
 import { SpreadsheetUploadModal } from "@/components/spreadsheet-upload-modal";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 
-const STATUS_STYLES: Record<string, string> = {
-  published: "bg-green-100 text-green-800",
-  draft: "bg-gray-100 text-gray-600",
-  archived: "bg-yellow-100 text-yellow-800",
+const STATUS_CHIPS: Record<string, string> = {
+  published: "chip chip-success",
+  draft: "chip chip-neutral",
+  archived: "chip chip-caution",
 };
 
 export function EventDetailPage() {
@@ -37,9 +37,9 @@ export function EventDetailPage() {
 
   if (!event) {
     return (
-      <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
-        <p className="text-sm text-gray-500">This event doesn&apos;t exist (or was deleted).</p>
-        <Link to="/" className="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-800">
+      <div className="rounded-card border border-dashed border-hairline bg-surface p-12 text-center">
+        <p className="text-sm text-ink-muted">This event doesn&apos;t exist (or was deleted).</p>
+        <Link to="/" className="btn-text mt-3 inline-block text-sm">
           ← Back to all events
         </Link>
       </div>
@@ -98,20 +98,18 @@ export function EventDetailPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <Link to="/" className="text-sm font-medium text-blue-600 hover:text-blue-800">
+    <div className="space-y-8">
+      <Link to="/" className="btn-text text-sm">
         ← Back to all events
       </Link>
 
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold text-gray-900">{event.name}</h1>
-            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[event.status]}`}>
-              {event.status}
-            </span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-3xl font-semibold tracking-tight text-ink">{event.name}</h1>
+            <span className={STATUS_CHIPS[event.status]}>{event.status}</span>
           </div>
-          <p className="mt-1 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-ink-muted">
             {new Date(event.eventDate).toLocaleDateString(undefined, {
               weekday: "long",
               year: "numeric",
@@ -119,23 +117,15 @@ export function EventDetailPage() {
               day: "numeric",
             })}
           </p>
-          <p className="mt-2 max-w-2xl text-sm text-gray-600">{event.description}</p>
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed text-ink-muted">{event.description}</p>
         </div>
 
         {isAdmin && (
           <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              onClick={() => setIsEditEventOpen(true)}
-              className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
+            <button type="button" onClick={() => setIsEditEventOpen(true)} className="btn btn-secondary">
               Edit event
             </button>
-            <button
-              type="button"
-              onClick={() => setIsDeleteEventOpen(true)}
-              className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
-            >
+            <button type="button" onClick={() => setIsDeleteEventOpen(true)} className="btn btn-danger-outline">
               Delete
             </button>
           </div>
@@ -146,18 +136,10 @@ export function EventDetailPage() {
 
       {isAdmin && (
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setIsAddStopOpen(true)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+          <button type="button" onClick={() => setIsAddStopOpen(true)} className="btn btn-secondary">
             + Add Stop
           </button>
-          <button
-            type="button"
-            onClick={() => setIsUploadOpen(true)}
-            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
+          <button type="button" onClick={() => setIsUploadOpen(true)} className="btn btn-secondary">
             ⬆ Upload Spreadsheet
           </button>
         </div>

@@ -51,44 +51,44 @@ function EventFormFields({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Event name</label>
+        <label className="field-label">Event name</label>
         <input
           required
           value={form.name}
           onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
           placeholder="e.g. Maple Grove Town-Wide Yard Sale"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="field"
         />
       </div>
 
       <div>
-        <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+        <label className="field-label">Description</label>
         <textarea
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           rows={3}
           placeholder="What's this yard sale about?"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          className="field"
         />
       </div>
 
       <div className="flex gap-4">
         <div className="flex-1">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Event date</label>
+          <label className="field-label">Event date</label>
           <input
             type="date"
             required
             value={form.eventDate}
             onChange={(e) => setForm((f) => ({ ...f, eventDate: e.target.value }))}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="field"
           />
         </div>
         <div className="flex-1">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Status</label>
+          <label className="field-label">Status</label>
           <select
             value={form.status}
             onChange={(e) => setForm((f) => ({ ...f, status: e.target.value as EventStatus }))}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+            className="field"
           >
             <option value="draft">Draft</option>
             <option value="published">Published</option>
@@ -98,18 +98,10 @@ function EventFormFields({
       </div>
 
       <div className="flex justify-end gap-2 pt-2">
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
+        <button type="button" onClick={onClose} className="btn btn-secondary">
           Cancel
         </button>
-        <button
-          type="submit"
-          disabled={isSubmitting}
-          className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-        >
+        <button type="submit" disabled={isSubmitting} className="btn btn-primary">
           {isSubmitting ? "Saving…" : initialEvent ? "Save changes" : "Create event"}
         </button>
       </div>
