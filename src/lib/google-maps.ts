@@ -32,18 +32,19 @@ export function buildGoogleMapsRouteLegs(startAddress: string, orderedStopAddres
     return [];
   }
 
-  const legs: string[] = [];
   // Round trip: visit every stop in order, then end back at the start address.
   const stopsThenHome = [...orderedStopAddresses, startAddress];
-  let cursor = 0;
+  const legs: string[] = [];
+  // Each leg's destination becomes the next leg's origin, so the legs join up
+  // into one continuous drive. The stride is fixed rather than derived from
+  // the chunk length, which guarantees the loop always advances.
   let legOrigin = startAddress;
-  while (cursor < stopsThenHome.length) {
+
+  for (let cursor = 0; cursor < stopsThenHome.length; cursor += MAX_STOPS_PER_LEG + 1) {
     const chunk = stopsThenHome.slice(cursor, cursor + MAX_STOPS_PER_LEG + 1);
     const destination = chunk[chunk.length - 1];
-    const waypoints = chunk.slice(0, -1);
-    legs.push(buildSingleLegUrl(legOrigin, destination, waypoints));
+    legs.push(buildSingleLegUrl(legOrigin, destination, chunk.slice(0, -1)));
     legOrigin = destination;
-    cursor += chunk.length - 1;
   }
 
   return legs;
