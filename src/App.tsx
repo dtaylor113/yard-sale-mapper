@@ -15,7 +15,7 @@ export function App() {
           <main className="mx-auto w-full max-w-5xl flex-1 px-5 py-10 sm:py-12">
             <Routes>
               <Route path="/" element={<HomePage />} />
-              <Route path="/events/:eventId" element={<EventDetailPage />} />
+              <Route path="/events/:eventSlug" element={<EventDetailPage />} />
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </main>

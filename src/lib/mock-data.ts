@@ -136,9 +136,15 @@ function buildStops(eventId: string, town: MockTown, count: number): Stop[] {
   return stops;
 }
 
+// Fixed stand-ins for the ids a database would hand out. Short and dash-free,
+// matching newEventId(), because the URL slug is split on its last dash.
+const CLINTON_TOWN_WIDE_ID = "3kf9q2";
+const STERLING_SALE_ID = "7wm4xb";
+const SPRING_CLEANOUT_ID = "q28dhv";
+
 export const MOCK_EVENTS: YardSaleEvent[] = [
   {
-    id: "clinton-town-wide",
+    id: CLINTON_TOWN_WIDE_ID,
     name: "Clinton Town-Wide Yard Sale",
     description:
       "Our annual town-wide yard sale! Dozens of households across Clinton are participating. Upload your address to join, or plan a driving route to hit as many sales as you can.",
@@ -148,7 +154,7 @@ export const MOCK_EVENTS: YardSaleEvent[] = [
     updatedAt: "2026-09-01T09:30:00.000Z",
   },
   {
-    id: "sterling-neighborhood-sale",
+    id: STERLING_SALE_ID,
     name: "Sterling Neighborhood Sale",
     description:
       "A smaller, cozy neighborhood sale around Sterling center. Great for an easy Saturday morning circuit.",
@@ -158,7 +164,7 @@ export const MOCK_EVENTS: YardSaleEvent[] = [
     updatedAt: "2026-08-10T12:00:00.000Z",
   },
   {
-    id: "clinton-spring-cleanout",
+    id: SPRING_CLEANOUT_ID,
     name: "Clinton Spring Cleanout (planning)",
     description:
       "Draft event for next spring — not yet published. Only visible in admin mode.",
@@ -170,15 +176,15 @@ export const MOCK_EVENTS: YardSaleEvent[] = [
 ];
 
 const TOWN_BY_EVENT: Record<string, MockTown> = {
-  "clinton-town-wide": CLINTON,
-  "sterling-neighborhood-sale": STERLING,
-  "clinton-spring-cleanout": CLINTON,
+  [CLINTON_TOWN_WIDE_ID]: CLINTON,
+  [STERLING_SALE_ID]: STERLING,
+  [SPRING_CLEANOUT_ID]: CLINTON,
 };
 
 export const MOCK_STOPS: Record<string, Stop[]> = {
-  "clinton-town-wide": buildStops("clinton-town-wide", CLINTON, 32),
-  "sterling-neighborhood-sale": buildStops("sterling-neighborhood-sale", STERLING, 6),
-  "clinton-spring-cleanout": buildStops("clinton-spring-cleanout", CLINTON, 3),
+  [CLINTON_TOWN_WIDE_ID]: buildStops(CLINTON_TOWN_WIDE_ID, CLINTON, 32),
+  [STERLING_SALE_ID]: buildStops(STERLING_SALE_ID, STERLING, 6),
+  [SPRING_CLEANOUT_ID]: buildStops(SPRING_CLEANOUT_ID, CLINTON, 3),
 };
 
 /**

@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAdmin } from "@/lib/admin-context";
 import { useData } from "@/lib/data-context";
+import { eventIdFromPath, eventPath } from "@/lib/event-url";
 import type { Stop } from "@/lib/types";
 import { StopMap } from "@/components/stop-map";
 import { StopList } from "@/components/stop-list";
@@ -20,12 +21,16 @@ const STATUS_CHIPS: Record<string, string> = {
 const NOTHING_DESELECTED: ReadonlySet<string> = new Set();
 
 export function EventDetailPage() {
-  const { eventId = "" } = useParams();
+  const { eventSlug = "" } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
   const { getEvent, getStops, updateEvent, deleteEvent, createStop, updateStop, deleteStop, importStopsFromSpreadsheet } =
     useData();
 
+  // Only the id at the end of the slug identifies the event; the words in
+  // front are decorative. See lib/event-url.ts.
+  const eventId = eventIdFromPath(eventSlug);
   const event = getEvent(eventId);
   const stops = getStops(eventId);
 
@@ -60,6 +65,15 @@ export function EventDetailPage() {
         </Link>
       </div>
     );
+  }
+
+  // Renaming an event changes the slug in front of its id, so anyone arriving
+  // on the old wording gets moved to the current URL. `replace` keeps the
+  // stale path out of history, otherwise Back would land on it and redirect
+  // forward again.
+  const canonicalPath = eventPath(event);
+  if (location.pathname !== canonicalPath) {
+    return <Navigate to={canonicalPath} replace />;
   }
 
   function toggleStop(id: string) {

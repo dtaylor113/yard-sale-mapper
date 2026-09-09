@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
+import { newEventId } from "./event-url";
 import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS, mockImportedAddress } from "./mock-data";
 import type {
   CalculateRouteParams,
@@ -89,7 +90,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const createEvent = useCallback(async (input: EventInput) => {
     await delay(FAKE_NETWORK_DELAY_MS);
     const now = new Date().toISOString();
-    const event: YardSaleEvent = { id: newId("event"), createdAt: now, updatedAt: now, ...input };
+    const event: YardSaleEvent = { id: newEventId(), createdAt: now, updatedAt: now, ...input };
     setEvents((prev) => [event, ...prev]);
     setStopsByEvent((prev) => ({ ...prev, [event.id]: [] }));
     return event;

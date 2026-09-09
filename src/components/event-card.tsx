@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { eventPath } from "@/lib/event-url";
 import type { YardSaleEvent } from "@/lib/types";
 
 interface EventCardProps {
@@ -21,7 +22,7 @@ export function EventCard({ event, stopCount, isAdmin, onEdit, onDelete }: Event
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2.5">
           <Link
-            to={`/events/${event.id}`}
+            to={eventPath(event)}
             className="text-lg font-semibold tracking-tight text-ink transition-colors duration-150 hover:text-accent"
           >
             {event.name}
@@ -38,7 +39,7 @@ export function EventCard({ event, stopCount, isAdmin, onEdit, onDelete }: Event
           · {stopCount} stop{stopCount === 1 ? "" : "s"}
         </p>
         <p className="mt-2.5 line-clamp-2 text-sm leading-relaxed text-ink-muted">{event.description}</p>
-        <Link to={`/events/${event.id}`} className="btn-text mt-4 inline-block text-sm">
+        <Link to={eventPath(event)} className="btn-text mt-4 inline-block text-sm">
           View event & plan route →
         </Link>
       </div>
