@@ -13,8 +13,8 @@ interface StopListProps {
 
 export function StopList({ stops, selectedIds, onToggle, onSelectAll, onSelectNone, isAdmin, onEdit, onDelete }: StopListProps) {
   return (
-    <div className="card overflow-hidden">
-      <div className="flex items-center justify-between border-b border-hairline px-5 py-3">
+    <div className="card flex flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between border-b border-hairline px-5 py-3">
         <span className="text-sm font-medium text-ink">
           {selectedIds.size} of {stops.length} selected
         </span>
@@ -28,7 +28,11 @@ export function StopList({ stops, selectedIds, onToggle, onSelectAll, onSelectNo
         </div>
       </div>
 
-      <ul className="max-h-96 divide-y divide-hairline overflow-y-auto">
+      {/* Grows to fill the card, which the grid stretches to match the taller
+          route panel beside it. `min-h-96` sets the floor for when that panel
+          is short; being a scroll container is what stops the list's own
+          height from driving the row taller still. */}
+      <ul className="min-h-96 flex-1 divide-y divide-hairline overflow-y-auto">
         {stops.map((stop) => (
           <li key={stop.id} className="flex items-start gap-3.5 px-5 py-3 transition-colors duration-150 hover:bg-surface-sunken">
             <input
