@@ -197,6 +197,16 @@ ImportJob  (optional, tracks spreadsheet uploads)
 
 ## 5. Phased Implementation Plan
 
+**Where things stand:** the whole app is a working UI mockup — every page, modal,
+and navigation path is built and clickable, driven by mock data and stubbed async
+functions in `src/lib/data-provider.tsx`. There is **no backend, no database, and
+no geocoding yet**. A checked box below means that bullet is genuinely finished;
+bullets that exist only as mocked UI say so explicitly, because the stub and the
+real thing are very different amounts of work.
+
+The one piece of non-stub production logic today is `src/lib/google-maps.ts`
+(deep-link construction), which is unit-tested.
+
 ### Phase 0 — Project setup
 - [x] Init Vite + React + TypeScript SPA, Tailwind, ESLint, repo skeleton.
 - [x] Vitest for unit tests (`npm test`). Worth pointing at pure logic like the
@@ -211,22 +221,38 @@ ImportJob  (optional, tracks spreadsheet uploads)
 - [ ] Set up ORM (Prisma/Drizzle) with `Event`/`Stop` schema + migrations.
 
 ### Phase 1 — Admin gate + Event & Stop CRUD (no map yet)
-- [ ] Stand up the Express API service; point Vite's dev proxy at it.
-- [ ] Admin login: `POST /api/admin/login` checks a hashed password (env var),
-      sets an httpOnly signed session cookie on success; `POST /api/admin/logout`.
+- [x] Public event list + detail pages; add/edit/delete controls rendered only in
+      admin mode. **UI only** — mutations hit in-memory stubs, so edits vanish on
+      reload.
 - [x] Hidden UI trigger (Shift + 3 clicks on the logo) reveals the login prompt.
+- [x] Admin login form + client-side admin state (`src/lib/admin-provider.tsx`),
+      accepting a hardcoded demo password (`yardsale`). **This is not a security
+      boundary** — it only decides what the UI renders. Anyone can flip it from
+      devtools. The real gate is the server-side session check below.
+- [ ] Stand up the Express API service; point Vite's dev proxy at it.
+- [ ] Real admin login: `POST /api/admin/login` checks a hashed password (env var),
+      sets an httpOnly signed session cookie on success; `POST /api/admin/logout`.
 - [ ] Middleware/helper to require a valid admin session on every mutating route.
 - [ ] API: create/list/get/update/delete Event — mutations require admin session;
       reads are public.
 - [ ] API: create/list/update/delete Stop (manual single-address entry) — same gate.
-- [ ] Basic UI: public event list/detail pages; add/edit/delete controls only
-      rendered (and only actually authorized) in admin mode.
+- [ ] Point the `data-provider` stubs at the real endpoints (their async signatures
+      already match, so consuming components shouldn't need to change).
 
 ### Phase 2 — Spreadsheet import + geocoding
-- [ ] Upload UI (drag/drop `.csv`/`.xlsx`), column mapping (address, label/notes).
-- [ ] Parse rows → create `Stop`s with `geocode_status = pending`.
+- [x] Upload UI: drag/drop or browse for a `.csv`/`.xlsx`, progress state, and an
+      import report table listing per-row success/failure. **Entirely faked** —
+      `importStopsFromSpreadsheet` invents rows from the filename and fails every
+      fifth one to exercise the error styling. Nothing is parsed.
+- [ ] Column mapping step (address, label/notes) so any export format works.
+- [ ] Actually parse rows → create `Stop`s with `geocode_status = pending`.
 - [ ] Geocoding worker: batch geocode pending stops (rate-limited), store lat/lng.
-- [ ] Import report UI: show failed rows, allow manual address fix + re-geocode.
+- [ ] Import report driven by real results; allow manual address fix + re-geocode.
+- [ ] **Validate the user's starting address by geocoding it.** Right now the route
+      planner only checks that the field isn't empty — a typo sails straight through
+      into the Google Maps link. Regex is the wrong tool here (real addresses are far
+      too irregular); the geocoder is the validator. On no match, say so; on multiple
+      matches, offer a "did you mean…?" picker before routing.
 
 ### Phase 3 — Map visualization + stop selection
 - [ ] Integrate `react-leaflet` + tile provider; render an event's stops as pins.
@@ -235,6 +261,11 @@ ImportJob  (optional, tracks spreadsheet uploads)
       accompanying list panel, kept in sync both ways), plus "select all" /
       "select none" convenience controls. Selection state lives client-side
       (e.g. a `Set<stopId>`) until the user is ready to route.
+- [x] Stop list panel with per-stop checkboxes, a selected/total count, and
+      select-all / select-none controls.
+- [x] Placeholder map box (`src/components/map-placeholder.tsx`) plotting pins by
+      naive lat/lng-to-percentage math — no projection, no tiles. Replaced by the
+      real Leaflet map above.
 
 ### Phase 4 — Self-hosted routing engine + route optimization ("the circuit")
 - [ ] Stand up self-hosted routing via Docker Compose: **OSRM** (regional OSM
@@ -242,22 +273,34 @@ ImportJob  (optional, tracks spreadsheet uploads)
       **VROOM** pointed at it for the optimization solve. (Optionally wire up
       the hosted ORS `/optimization` API first, behind the same adapter, if you
       want something working before the self-hosted engine is stood up.)
-- [ ] UI: pick an event, enter/geocode a starting address, check the stops to
-      visit from Phase 3's selection UI, then click an explicit **"Calculate
-      Route"** button — routing only runs on that click, never automatically
-      on every checkbox toggle.
+- [x] UI: pick an event, type a starting address, check the stops to visit, then
+      click an explicit **"Calculate Route"** button — routing runs only on that
+      click, never on every checkbox toggle. Warns on zero stops or a blank address.
+      (The address is not geocoded or validated yet; see Phase 2.)
+- [x] Results panel: ordered stop list, total distance, total drive time.
+- [x] "Open in Google Maps" deep-link button, chunked into legs of ≤9 waypoints
+      with each leg resuming where the last ended. **Real, working, unit-tested**
+      (`src/lib/google-maps.test.ts`) — no API key or backend needed.
+- [x] Editing the selection and re-clicking "Calculate Route" recomputes.
+- [ ] Replace the stub solver. `calculateRoute` currently fakes a 900ms delay and
+      orders stops by nearest-neighbor over **straight-line** distance from a
+      hardcoded town center — it ignores roads entirely, so the "optimized" order
+      and the distance/time totals are decorative.
 - [ ] `RouteOptimizer` adapter → call VROOM (start = end = home, jobs = only the
       **selected** stop IDs from the request) → get ordered stop list + total
-      distance/duration. Reject/warn on zero stops selected.
+      distance/duration.
 - [ ] Fetch actual route geometry from OSRM `/route` using the optimized order,
       draw the polyline on the map (dim/hide unselected stops while a route is shown).
-- [ ] Results panel: ordered stop list, ETA/leg distances, total trip summary.
-- [ ] "Open in Google Maps" deep-link button (chunk into ≤10-stop legs if needed).
-- [ ] Allow editing the selection and re-clicking "Calculate Route" to recompute.
 
 ### Phase 5 — Polish
-- [ ] Handle geocode failures gracefully (exclude from route, flag in UI).
-- [ ] Mobile-responsive layout; loading/error states throughout.
+- [x] Loading and error states throughout the mocked flows (calculating, saving,
+      uploading, bad password, empty selection).
+- [x] Failed-geocode stops flagged with a warning chip in the stop list.
+- [ ] Actually exclude failed-geocode stops from routing (today they're only
+      labeled — nothing stops you selecting one and routing to it).
+- [ ] Mobile-responsive layout — the two-column stop list / route planner grid
+      collapses, but nothing has been tested on a real phone, which matters since
+      that's where people will use this while driving.
 - [ ] Cache/persist computed `RouteRequest`s so revisits don't recompute.
 
 ### Phase 6 — Multi-admin support (optional, only if one shared password stops being enough)
