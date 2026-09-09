@@ -199,6 +199,9 @@ ImportJob  (optional, tracks spreadsheet uploads)
 
 ### Phase 0 — Project setup
 - [x] Init Vite + React + TypeScript SPA, Tailwind, ESLint, repo skeleton.
+- [x] Vitest for unit tests (`npm test`). Worth pointing at pure logic like the
+      route-leg chunking and, later, the geocode/optimizer adapters — a bad loop
+      in `buildGoogleMapsRouteLegs` froze the browser mid-render once already.
 - [x] **UI-only mockup pass:** every page, modal, and navigation path built
       against mock data and stubbed async functions in `src/lib/data-provider.tsx`,
       so the screens can be agreed on before any backend exists. Each stub already
