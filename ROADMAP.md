@@ -204,8 +204,11 @@ no geocoding yet**. A checked box below means that bullet is genuinely finished;
 bullets that exist only as mocked UI say so explicitly, because the stub and the
 real thing are very different amounts of work.
 
-The one piece of non-stub production logic today is `src/lib/google-maps.ts`
-(deep-link construction), which is unit-tested.
+The non-stub production logic today is the Google Maps deep-link construction
+(`src/lib/google-maps.ts`) and the spreadsheet import pipeline
+(`src/lib/spreadsheet.ts` reading CSV/XLSX, `src/lib/column-mapping.ts` guessing
+columns and composing addresses) — all unit-tested. Everything those imported
+stops still lack (coordinates, persistence) is what keeps Phase 2 open.
 
 ### Phase 0 — Project setup
 - [x] Init Vite + React + TypeScript SPA, Tailwind, ESLint, repo skeleton.
@@ -256,18 +259,35 @@ actually lacks is real address data.
 - [ ] Point the `data-provider` stubs at the real endpoints (their async signatures
       already match, so consuming components shouldn't need to change).
 
-### Phase 2 — Spreadsheet import + geocoding ← **next up**
+### Phase 2 — Spreadsheet import + geocoding ← **in progress**
 > Prioritized ahead of the rest of Phase 1: full admin CRUD can stay mocked, but
 > "create an event and upload a spreadsheet of addresses" is the minimum needed
 > to put real data in the app. Real coordinates also unblock Phase 4 — the route
 > optimizer has nothing meaningful to optimize without them.
+>
+> **Where this stands:** parsing and column-mapping are done — you can upload a
+> real CSV/XLSX and it becomes real `Stop`s. What's left is what makes those
+> stops *useful*: **geocoding** them to coordinates (so they hit the map and
+> routing), and **persistence** (so they survive a refresh). Those two, plus
+> starting-address validation, are the remaining items below.
 
-- [x] Upload UI: drag/drop or browse for a `.csv`/`.xlsx`, progress state, and an
-      import report table listing per-row success/failure. **Entirely faked** —
-      `importStopsFromSpreadsheet` invents rows from the filename and fails every
-      fifth one to exercise the error styling. Nothing is parsed.
-- [ ] Column mapping step (address, label/notes) so any export format works.
-- [ ] Actually parse rows → create `Stop`s with `geocode_status = pending`.
+- [x] Upload UI: drag/drop or browse for a `.csv`/`.xlsx`, reading/mapping/preview
+      steps, and an import report table listing per-row imported/skipped with a
+      reason. **Real now** — CSV parsed with `papaparse` and Excel with a
+      lazy-loaded `xlsx`, both flattened to a string grid in
+      `src/lib/spreadsheet.ts` (header-row detection, blank-row/column trimming,
+      original row numbers preserved for the report). Unit-tested.
+- [x] Column mapping step so any export format works — `src/lib/column-mapping.ts`
+      guesses which column is address/city/state/zip/label/notes from the headers
+      (ignoring case/spacing/punctuation, guarding against an "Email Address"
+      column), lets the user correct the guess, then composes the mapped columns
+      into one geocodable line ("12 High St, Clinton, MA 01510"), repairing ZIPs
+      Excel stripped the leading zero from. Unit-tested.
+- [x] Actually parse rows → create `Stop`s with `geocode_status = pending`. Rows
+      with no street address, or duplicates of an earlier row, are skipped and
+      reported with the file's own row number. On import the user chooses whether
+      to **replace** the event's existing stops or **add to** them. **In-memory
+      only** — see the persistence bullet below.
 - [ ] **Decide where geocoding runs, and against what.** Nominatim is free but
       its usage policy caps bulk work at ~1 request/second and wants an
       identifying `User-Agent`, which a browser can't set — so bulk geocoding
@@ -405,5 +425,8 @@ Two notes for later:
 - ~~What's the realistic max stop count per event?~~ **Resolved:** town-wide events
   routinely exceed 25 stops and likely exceed ORS's 50-stop free-tier cap too — moved
   self-hosted OSRM+VROOM setup up to Phase 4 instead of deferring it to scaling work.
-- Spreadsheet format: fixed column names, or a mapping step so users can upload whatever export they have?
+- ~~Spreadsheet format: fixed column names, or a mapping step so users can upload whatever export they have?~~
+  **Resolved:** a mapping step — the importer guesses the columns from the headers
+  and lets the user correct the guess, so any export shape works
+  (`src/lib/column-mapping.ts`).
 - Do we need to persist historical routes per user, or is "compute on demand" enough?

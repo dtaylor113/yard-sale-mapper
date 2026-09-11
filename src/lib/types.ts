@@ -42,13 +42,27 @@ export interface StopInput {
   notes?: string;
 }
 
+/**
+ * One row of an uploaded spreadsheet, after parsing and column mapping.
+ * Says nothing about geocoding — imported stops arrive as `pending` and get
+ * their coordinates afterwards.
+ */
 export interface ImportRow {
+  /** 1-based row number in the user's file, counting the header, so they can find it. */
   rowNumber: number;
   rawAddress: string;
   label?: string;
-  status: "success" | "failed";
-  error?: string;
+  notes?: string;
+  status: "imported" | "skipped";
+  /** Why a skipped row was skipped. */
+  reason?: string;
 }
+
+/**
+ * What an import does with the stops the event already has.
+ * "append" adds to them; "replace" swaps them out entirely.
+ */
+export type ImportMode = "append" | "replace";
 
 export interface RouteLeg {
   fromLabel: string;

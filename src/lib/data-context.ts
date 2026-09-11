@@ -2,6 +2,7 @@ import { createContext, useContext } from "react";
 import type {
   CalculateRouteParams,
   EventInput,
+  ImportMode,
   ImportRow,
   RouteResult,
   Stop,
@@ -19,7 +20,12 @@ export interface DataContextValue {
   createStop: (eventId: string, input: StopInput) => Promise<Stop>;
   updateStop: (id: string, input: StopInput) => Promise<Stop>;
   deleteStop: (id: string) => Promise<void>;
-  importStopsFromSpreadsheet: (eventId: string, fileName: string) => Promise<ImportRow[]>;
+  /**
+   * Creates a stop per imported row. Rows are already parsed and mapped by the
+   * caller. `mode` decides whether the new stops are added to the event's
+   * existing ones ("append") or take their place ("replace").
+   */
+  importStops: (eventId: string, rows: ImportRow[], mode: ImportMode) => Promise<Stop[]>;
   calculateRoute: (params: CalculateRouteParams) => Promise<RouteResult>;
 }
 

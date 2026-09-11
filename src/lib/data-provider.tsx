@@ -1,10 +1,11 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
 import { newEventId } from "./event-url";
-import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS, mockImportedAddress } from "./mock-data";
+import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS } from "./mock-data";
 import type {
   CalculateRouteParams,
   EventInput,
+  ImportMode,
   ImportRow,
   RouteLeg,
   RouteResult,
@@ -163,31 +164,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const importStopsFromSpreadsheet = useCallback(async (eventId: string, fileName: string) => {
-    await delay(1200); // spreadsheet parsing + batch geocoding will genuinely take a moment for real
-    const rowCount = 6 + (fileName.length % 6); // deterministic-ish "row count" from the filename
-    const rows: ImportRow[] = [];
-    const newStops: Stop[] = [];
-    for (let i = 0; i < rowCount; i++) {
-      const failed = i % 5 === 4; // roughly 1 in 5 rows "fails" to geocode
-      const { rawAddress, lat, lng } = mockImportedAddress(eventId, i);
-      if (failed) {
-        rows.push({ rowNumber: i + 1, rawAddress, status: "failed", error: "Could not geocode address" });
-      } else {
-        const stop: Stop = {
-          id: newId("stop"),
-          eventId,
-          rawAddress,
-          lat,
-          lng,
-          geocodeStatus: "ok",
-        };
-        newStops.push(stop);
-        rows.push({ rowNumber: i + 1, rawAddress, status: "success" });
-      }
-    }
-    setStopsByEvent((prev) => ({ ...prev, [eventId]: [...(prev[eventId] ?? []), ...newStops] }));
-    return rows;
+  const importStops = useCallback(async (eventId: string, rows: ImportRow[], mode: ImportMode) => {
+    await delay(FAKE_NETWORK_DELAY_MS);
+    // No coordinates yet: geocoding is the next piece of Phase 2, and until
+    // it exists these stops are honestly marked pending rather than given
+    // invented positions.
+    const newStops: Stop[] = rows
+      .filter((row) => row.status === "imported")
+      .map((row) => ({
+        id: newId("stop"),
+        eventId,
+        rawAddress: row.rawAddress,
+        label: row.label,
+        notes: row.notes,
+        lat: null,
+        lng: null,
+        geocodeStatus: "pending" as const,
+      }));
+
+    setStopsByEvent((prev) => ({
+      ...prev,
+      // "replace" drops the event's current stops entirely; "append" keeps them.
+      [eventId]: mode === "replace" ? newStops : [...(prev[eventId] ?? []), ...newStops],
+    }));
+    return newStops;
   }, []);
 
   const calculateRoute = useCallback(
@@ -250,7 +250,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createStop,
       updateStop,
       deleteStop,
-      importStopsFromSpreadsheet,
+      importStops,
       calculateRoute,
     }),
     [
@@ -263,7 +263,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       createStop,
       updateStop,
       deleteStop,
-      importStopsFromSpreadsheet,
+      importStops,
       calculateRoute,
     ]
   );

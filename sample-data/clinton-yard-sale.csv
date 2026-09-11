@@ -1,0 +1,13 @@
+Seller Name,Street Address,Town,State,Zip,Notes
+Reilly family,12 High St,Clinton,MA,01510,Tools and garden stuff
+,44 Water St,Clinton,MA,01510,
+Nguyen,7 Church St,Clinton,MA,01510,Kids' clothes and toys
+Brodeur,118 Chestnut St,Clinton,MA,01510,
+
+O'Hara,23 Walnut St,Clinton,MA,01510,Furniture — cash only
+,,Clinton,MA,01510,row with no street address
+Pelletier,9 Prospect St,Clinton,MA,01510,
+Reilly family,12 HIGH ST.,Clinton,MA,01510,duplicate of the first row
+Santos,61 Franklin St,Clinton,MA,01510,Books
+Whitcomb,"250 Grove St, Unit B",Clinton,MA,01510,Comma inside the address
+Abadi,15 Berlin St,Clinton,MA,01510,

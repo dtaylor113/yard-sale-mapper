@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate, useParams } from "react-route
 import { useAdmin } from "@/lib/admin-context";
 import { useData } from "@/lib/data-context";
 import { eventIdFromPath, eventPath } from "@/lib/event-url";
-import type { Stop } from "@/lib/types";
+import type { ImportMode, ImportRow, Stop } from "@/lib/types";
 import { StopMap } from "@/components/stop-map";
 import { StopList } from "@/components/stop-list";
 import { RoutePlanner } from "@/components/route-planner";
@@ -25,8 +25,7 @@ export function EventDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
-  const { getEvent, getStops, updateEvent, deleteEvent, createStop, updateStop, deleteStop, importStopsFromSpreadsheet } =
-    useData();
+  const { getEvent, getStops, updateEvent, deleteEvent, createStop, updateStop, deleteStop, importStops } = useData();
 
   // Only the id at the end of the slug identifies the event; the words in
   // front are decorative. See lib/event-url.ts.
@@ -119,8 +118,8 @@ export function EventDetailPage() {
     setDeletingStop(null);
   }
 
-  async function handleUpload(fileName: string) {
-    return importStopsFromSpreadsheet(eventId, fileName);
+  async function handleImport(rows: ImportRow[], mode: ImportMode) {
+    return importStops(eventId, rows, mode);
   }
 
   return (
@@ -220,7 +219,12 @@ export function EventDetailPage() {
         onCancel={() => setDeletingStop(null)}
       />
 
-      <SpreadsheetUploadModal isOpen={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUpload={handleUpload} />
+      <SpreadsheetUploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onImport={handleImport}
+        existingStopCount={stops.length}
+      />
     </div>
   );
 }

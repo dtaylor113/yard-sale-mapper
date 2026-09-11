@@ -50,6 +50,11 @@ export function StopList({ stops, selectedIds, onToggle, onSelectAll, onSelectNo
                     ⚠ geocode failed
                   </span>
                 )}
+                {stop.geocodeStatus === "pending" && (
+                  <span className="chip chip-neutral" title="This address hasn't been geocoded yet">
+                    not located yet
+                  </span>
+                )}
               </div>
               {stop.notes && <p className="mt-1 text-xs text-ink-muted">{stop.notes}</p>}
             </div>

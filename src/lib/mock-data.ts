@@ -175,30 +175,9 @@ export const MOCK_EVENTS: YardSaleEvent[] = [
   },
 ];
 
-const TOWN_BY_EVENT: Record<string, MockTown> = {
-  [CLINTON_TOWN_WIDE_ID]: CLINTON,
-  [STERLING_SALE_ID]: STERLING,
-  [SPRING_CLEANOUT_ID]: CLINTON,
-};
-
 export const MOCK_STOPS: Record<string, Stop[]> = {
   [CLINTON_TOWN_WIDE_ID]: buildStops(CLINTON_TOWN_WIDE_ID, CLINTON, 32),
   [STERLING_SALE_ID]: buildStops(STERLING_SALE_ID, STERLING, 6),
   [SPRING_CLEANOUT_ID]: buildStops(SPRING_CLEANOUT_ID, CLINTON, 3),
 };
 
-/**
- * An address for the spreadsheet-import stub to pretend it just parsed. Keeps
- * imported rows in the same town as the event they land in. Events created
- * during a session have no town on file, so they fall back to Clinton.
- */
-export function mockImportedAddress(eventId: string, index: number) {
-  const town = TOWN_BY_EVENT[eventId] ?? CLINTON;
-  // Offset past the fixture stops so imported rows read as new addresses, and
-  // land them on the outer half of the spiral so they don't crowd the center.
-  const offset = index + 40;
-  return {
-    rawAddress: addressIn(town, offset),
-    ...scatter(town, offset, town.spread, 80),
-  };
-}
