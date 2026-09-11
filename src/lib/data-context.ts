@@ -1,4 +1,5 @@
 import { createContext, useContext } from "react";
+import type { GeocodeCandidate } from "./geocode";
 import type {
   CalculateRouteParams,
   EventInput,
@@ -9,6 +10,12 @@ import type {
   StopInput,
   YardSaleEvent,
 } from "./types";
+
+/** Outcome of geocoding an event's pending stops. */
+export interface GeocodeBatchResult {
+  located: number;
+  failed: number;
+}
 
 export interface DataContextValue {
   events: YardSaleEvent[];
@@ -26,6 +33,17 @@ export interface DataContextValue {
    * existing ones ("append") or take their place ("replace").
    */
   importStops: (eventId: string, rows: ImportRow[], mode: ImportMode) => Promise<Stop[]>;
+  /** Resolves an address to a best-first list of candidate coordinates. */
+  geocodeAddress: (query: string) => Promise<GeocodeCandidate[]>;
+  /**
+   * Geocodes every stop in the event that isn't already located ("ok"),
+   * updating each with coordinates or a failed status as results arrive.
+   * `onProgress` fires after each stop so callers can show a running count.
+   */
+  geocodeEventStops: (
+    eventId: string,
+    onProgress?: (done: number, total: number) => void,
+  ) => Promise<GeocodeBatchResult>;
   calculateRoute: (params: CalculateRouteParams) => Promise<RouteResult>;
 }
 

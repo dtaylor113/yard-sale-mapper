@@ -205,10 +205,12 @@ bullets that exist only as mocked UI say so explicitly, because the stub and the
 real thing are very different amounts of work.
 
 The non-stub production logic today is the Google Maps deep-link construction
-(`src/lib/google-maps.ts`) and the spreadsheet import pipeline
+(`src/lib/google-maps.ts`), the spreadsheet import pipeline
 (`src/lib/spreadsheet.ts` reading CSV/XLSX, `src/lib/column-mapping.ts` guessing
-columns and composing addresses) — all unit-tested. Everything those imported
-stops still lack (coordinates, persistence) is what keeps Phase 2 open.
+columns and composing addresses), and the geocoder (`src/lib/geocode.ts`, a real
+Nominatim call behind a swappable adapter) — all with unit-tested pure logic.
+The one thing imported stops still lack is **persistence**, which is what keeps
+Phase 2 open.
 
 ### Phase 0 — Project setup
 - [x] Init Vite + React + TypeScript SPA, Tailwind, ESLint, repo skeleton.
@@ -265,11 +267,12 @@ actually lacks is real address data.
 > to put real data in the app. Real coordinates also unblock Phase 4 — the route
 > optimizer has nothing meaningful to optimize without them.
 >
-> **Where this stands:** parsing and column-mapping are done — you can upload a
-> real CSV/XLSX and it becomes real `Stop`s. What's left is what makes those
-> stops *useful*: **geocoding** them to coordinates (so they hit the map and
-> routing), and **persistence** (so they survive a refresh). Those two, plus
-> starting-address validation, are the remaining items below.
+> **Where this stands:** parsing, column-mapping, **geocoding**, and
+> **starting-address validation** are all done — you can upload a real CSV/XLSX,
+> turn those stops into real coordinates (they then appear on the map and drive
+> routing), and the route planner now resolves the start address instead of
+> trusting whatever was typed. The one remaining gap is **persistence**:
+> everything still lives in memory, so it all evaporates on refresh.
 
 - [x] Upload UI: drag/drop or browse for a `.csv`/`.xlsx`, reading/mapping/preview
       steps, and an import report table listing per-row imported/skipped with a
@@ -288,24 +291,36 @@ actually lacks is real address data.
       reported with the file's own row number. On import the user chooses whether
       to **replace** the event's existing stops or **add to** them. **In-memory
       only** — see the persistence bullet below.
-- [ ] **Decide where geocoding runs, and against what.** Nominatim is free but
-      its usage policy caps bulk work at ~1 request/second and wants an
-      identifying `User-Agent`, which a browser can't set — so bulk geocoding
-      from the client is both slow (a 100-stop event takes ~2 minutes) and
-      against their terms. Practical options: run it server-side behind the
-      Express API, or use a keyed service with a free tier (ORS, LocationIQ,
-      MapTiler). Either way the adapter stays swappable.
+- [x] **Where geocoding runs, and against what — decided for now: client-side
+      Nominatim, behind a swappable adapter** (`src/lib/geocode.ts`). Keyless, so
+      it works with no signup and actually resolves the mock towns' real streets
+      for a live demo. The URL builder and response parser are pure and
+      unit-tested; the network call isn't. ⚠️ This is an interim choice, not the
+      production answer: Nominatim's policy caps bulk work at ~1 req/sec (a
+      100-stop event takes ~2 minutes) and discourages browser bulk use, and a
+      browser can't send the identifying `User-Agent` they ask for. Because it's
+      an adapter, moving to a server-side endpoint or a keyed free-tier service
+      (ORS, LocationIQ, MapTiler) later is a one-file change.
 - [ ] **Decide where imported data lives.** Everything is in-memory today, so an
       upload evaporates on refresh — which makes the feature useless on its own.
       Either bring Postgres forward from Phase 0, or persist to localStorage as
       an interim step if a real backend isn't worth standing up yet.
-- [ ] Geocoding worker: batch geocode pending stops (rate-limited), store lat/lng.
-- [ ] Import report driven by real results; allow manual address fix + re-geocode.
-- [ ] **Validate the user's starting address by geocoding it.** Right now the route
-      planner only checks that the field isn't empty — a typo sails straight through
-      into the Google Maps link. Regex is the wrong tool here (real addresses are far
-      too irregular); the geocoder is the validator. On no match, say so; on multiple
-      matches, offer a "did you mean…?" picker before routing.
+- [x] Geocoding worker: an admin **"Locate N stops"** control on the event page
+      batch-geocodes every not-yet-located stop, paced at ~1/sec, writing each
+      stop's `lat`/`lng` and flipping its status to `ok`/`failed` as results
+      arrive (so the map and list update live), then reports how many were
+      located. `data-provider.geocodeEventStops` owns the loop and pacing.
+      **Still in-memory** — the coordinates vanish on refresh until persistence
+      lands.
+- [x] Manual re-geocode: failed/pending stops keep the "Locate" control
+      available, so an admin can edit a bad address (existing Edit Stop flow) and
+      re-run the lookup. Import report itself is driven by real parse results.
+- [x] **Validate the user's starting address by geocoding it.** The route planner
+      now geocodes the start address on "Calculate Route": no match shows an error
+      asking for a city/state or a spelling fix; multiple matches show a "did you
+      mean…?" picker before routing; a single match routes straight through. The
+      resolved coordinates are handed to `calculateRoute`, so the route starts
+      from the real point rather than a hardcoded town center.
 
 ### Phase 3 — Map visualization + stop selection ✅
 - [x] `react-leaflet` + OpenStreetMap tiles in `src/components/stop-map.tsx`,
@@ -376,10 +391,12 @@ Two notes for later:
       or `?ll=<lat>,<lng>` once stops are geocoded) that the driver taps again
       at each arrival.
 - [x] Editing the selection and re-clicking "Calculate Route" recomputes.
-- [ ] Replace the stub solver. `calculateRoute` currently fakes a 900ms delay and
-      orders stops by nearest-neighbor over **straight-line** distance from a
-      hardcoded town center — it ignores roads entirely, so the "optimized" order
-      and the distance/time totals are decorative.
+- [ ] Replace the stub solver. `calculateRoute` still fakes a 900ms delay and
+      orders stops by nearest-neighbor over **straight-line** distance — it now
+      starts from the geocoded start address and uses real geocoded stop
+      coordinates (so totals are in the right ballpark once stops are located),
+      but it ignores roads entirely, so the order and distance/time totals are
+      still approximate, not a real road-network solve.
 - [ ] `RouteOptimizer` adapter → call VROOM (start = end = home, jobs = only the
       **selected** stop IDs from the request) → get ordered stop list + total
       distance/duration.

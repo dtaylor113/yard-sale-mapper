@@ -83,4 +83,7 @@ export interface CalculateRouteParams {
   eventId: string;
   selectedStopIds: string[];
   startAddress: string;
+  /** The geocoded starting point, once the address has been resolved. */
+  startLat?: number;
+  startLng?: number;
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { useData } from "@/lib/data-context";
+import { deriveEventLocale, localizeStartAddress } from "@/lib/event-locale";
+import { GeocodeError, type GeocodeCandidate } from "@/lib/geocode";
 import { buildGoogleMapsRouteLegs, type RouteLegLink } from "@/lib/google-maps";
 import type { RouteResult, Stop } from "@/lib/types";
 
@@ -28,40 +30,89 @@ function formatDuration(seconds: number) {
 }
 
 export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps) {
-  const { calculateRoute } = useData();
+  const { calculateRoute, geocodeAddress } = useData();
   const [startAddress, setStartAddress] = useState("");
   const [isCalculating, setIsCalculating] = useState(false);
   const [result, setResult] = useState<RouteResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // When the address resolves to more than one place, we hold the candidates
+  // (and the exact query they came from) and ask which the user meant.
+  const [candidates, setCandidates] = useState<GeocodeCandidate[] | null>(null);
+  const [pendingQuery, setPendingQuery] = useState("");
+  // The address the shown route actually started from (locale-completed), used
+  // for the results list and the Google Maps hand-off so they stay consistent
+  // with what was geocoded rather than the raw text.
+  const [routedStart, setRoutedStart] = useState("");
 
   const selectedCount = selectedIds.size;
+  // "City, ST ZIP" inferred from the event's stops, so a bare street start
+  // address can be assumed to be in the same town.
+  const eventLocale = deriveEventLocale(stops);
 
-  async function handleCalculate() {
+  /** Runs the route from an already-resolved starting point. */
+  async function routeFrom(start: GeocodeCandidate, startText: string) {
+    setCandidates(null);
     setError(null);
-    if (selectedCount === 0) {
-      setError("Check at least one stop before calculating a route.");
-      return;
-    }
-    if (startAddress.trim().length === 0) {
-      setError("Enter a starting address first.");
-      return;
-    }
-    setIsCalculating(true);
     setResult(null);
+    setIsCalculating(true);
     try {
       const route = await calculateRoute({
         eventId,
         selectedStopIds: Array.from(selectedIds),
-        startAddress,
+        startAddress: startText,
+        startLat: start.lat,
+        startLng: start.lng,
       });
+      setRoutedStart(startText);
       setResult(route);
+    } catch {
+      setError("Couldn't calculate a route just now. Try again in a moment.");
+    } finally {
+      setIsCalculating(false);
+    }
+  }
+
+  async function handleCalculate() {
+    setError(null);
+    setCandidates(null);
+    if (selectedCount === 0) {
+      setError("Check at least one stop before calculating a route.");
+      return;
+    }
+    const typed = startAddress.trim();
+    if (typed.length === 0) {
+      setError("Enter a starting address first.");
+      return;
+    }
+    // Assume the event's town when the user typed only a street.
+    const query = localizeStartAddress(typed, eventLocale);
+
+    setIsCalculating(true);
+    setResult(null);
+    try {
+      // Validate the starting address by geocoding it — a typo can't sail
+      // through into the route or the Google Maps link anymore.
+      const matches = await geocodeAddress(query);
+      if (matches.length === 0) {
+        setError(`We couldn't find “${query}”. Add a city and state (or ZIP), or check the spelling.`);
+        return;
+      }
+      if (matches.length > 1) {
+        // Ambiguous — let the user disambiguate rather than guessing for them.
+        setPendingQuery(query);
+        setCandidates(matches);
+        return;
+      }
+      await routeFrom(matches[0], query);
+    } catch (e) {
+      setError(e instanceof GeocodeError ? e.message : "Something went wrong looking up that address.");
     } finally {
       setIsCalculating(false);
     }
   }
 
   const orderedStops = result ? result.orderedStopIds.map((id) => stops.find((s) => s.id === id)).filter((s): s is Stop => !!s) : [];
-  const googleMapsLegs = result ? buildGoogleMapsRouteLegs(startAddress, orderedStops.map((s) => s.rawAddress)) : [];
+  const googleMapsLegs = result ? buildGoogleMapsRouteLegs(routedStart, orderedStops.map((s) => s.rawAddress)) : [];
 
   return (
     <div className="card space-y-5 p-5">
@@ -75,6 +126,9 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
           placeholder="e.g. 42 Union St, Clinton, MA 01510"
           className="field"
         />
+        {eventLocale && (
+          <p className="field-hint">A street with no town is assumed to be in {eventLocale}.</p>
+        )}
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
@@ -87,6 +141,28 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
       >
         {isCalculating ? "Calculating best route…" : `Calculate Route (${selectedCount} stop${selectedCount === 1 ? "" : "s"} selected)`}
       </button>
+
+      {candidates && (
+        <div className="space-y-2 rounded-field border border-hairline bg-surface-sunken p-3">
+          <p className="text-sm font-medium text-ink">Which starting address did you mean?</p>
+          <ul className="space-y-1.5">
+            {candidates.map((candidate) => (
+              <li key={`${candidate.lat},${candidate.lng}`}>
+                <button
+                  type="button"
+                  onClick={() => routeFrom(candidate, pendingQuery)}
+                  className="w-full rounded-field border border-hairline bg-surface px-3 py-2 text-left text-sm text-ink transition-colors duration-150 hover:border-accent hover:bg-accent-soft"
+                >
+                  {candidate.displayName}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <button type="button" onClick={() => setCandidates(null)} className="btn-text text-xs">
+            None of these — let me edit the address
+          </button>
+        </div>
+      )}
 
       {result && (
         <div className="space-y-5 border-t border-hairline pt-5">
@@ -114,7 +190,7 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
                 S
               </span>
-              <span className="text-ink-muted">{startAddress} (start)</span>
+              <span className="text-ink-muted">{routedStart} (start)</span>
             </li>
             {orderedStops.map((stop, index) => (
               <li key={stop.id} className="flex items-center gap-3 text-sm">
@@ -131,7 +207,7 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-ink text-[11px] font-semibold text-white">
                 🏁
               </span>
-              <span className="text-ink-muted">{startAddress} (return trip)</span>
+              <span className="text-ink-muted">{routedStart} (return trip)</span>
             </li>
           </ol>
 

@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
+import { geocode, GEOCODE_MIN_INTERVAL_MS } from "./geocode";
 import { newEventId } from "./event-url";
 import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS } from "./mock-data";
 import type {
@@ -190,14 +191,63 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return newStops;
   }, []);
 
+  const geocodeAddress = useCallback((query: string) => geocode(query, { limit: 5 }), []);
+
+  const geocodeEventStops = useCallback(
+    async (eventId: string, onProgress?: (done: number, total: number) => void) => {
+      // Snapshot the not-yet-located stops up front; results are written back by
+      // id, so the stale closure over `stopsByEvent` is fine.
+      const targets = (stopsByEvent[eventId] ?? []).filter((s) => s.geocodeStatus !== "ok");
+
+      const patch = (id: string, next: Pick<Stop, "lat" | "lng" | "geocodeStatus">) =>
+        setStopsByEvent((prev) => ({
+          ...prev,
+          [eventId]: (prev[eventId] ?? []).map((s) => (s.id === id ? { ...s, ...next } : s)),
+        }));
+
+      let located = 0;
+      let failed = 0;
+
+      for (let i = 0; i < targets.length; i++) {
+        const stop = targets[i];
+        try {
+          const [best] = await geocode(stop.rawAddress, { limit: 1 });
+          if (best) {
+            patch(stop.id, { lat: best.lat, lng: best.lng, geocodeStatus: "ok" });
+            located++;
+          } else {
+            patch(stop.id, { lat: null, lng: null, geocodeStatus: "failed" });
+            failed++;
+          }
+        } catch {
+          // A single lookup failing (network blip, rate limit) shouldn't abort
+          // the batch — mark this one failed and keep going.
+          patch(stop.id, { lat: null, lng: null, geocodeStatus: "failed" });
+          failed++;
+        }
+
+        onProgress?.(i + 1, targets.length);
+
+        // Space requests out to respect Nominatim's 1 req/sec policy.
+        if (i < targets.length - 1) await delay(GEOCODE_MIN_INTERVAL_MS);
+      }
+
+      return { located, failed };
+    },
+    [stopsByEvent],
+  );
+
   const calculateRoute = useCallback(
-    async ({ eventId, selectedStopIds, startAddress }: CalculateRouteParams): Promise<RouteResult> => {
+    async ({ eventId, selectedStopIds, startAddress, startLat, startLng }: CalculateRouteParams): Promise<RouteResult> => {
       await delay(900); // stands in for the real OSRM+VROOM round trip (Phase 4)
       const allStops = stopsByEvent[eventId] ?? [];
       const selected = allStops.filter((s) => selectedStopIds.includes(s.id));
       const ordered = nearestNeighborOrder(selected);
 
-      const start = pseudoStartPoint(allStops);
+      // Prefer the geocoded start when the caller resolved one; fall back to the
+      // pseudo-start for callers that haven't (keeps old behavior working).
+      const start =
+        startLat != null && startLng != null ? { lat: startLat, lng: startLng } : pseudoStartPoint(allStops);
       const legs: RouteLeg[] = [];
       let totalMiles = 0;
       let cursor: { lat: number | null; lng: number | null } = start;
@@ -251,6 +301,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateStop,
       deleteStop,
       importStops,
+      geocodeAddress,
+      geocodeEventStops,
       calculateRoute,
     }),
     [
@@ -264,6 +316,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       updateStop,
       deleteStop,
       importStops,
+      geocodeAddress,
+      geocodeEventStops,
       calculateRoute,
     ]
   );

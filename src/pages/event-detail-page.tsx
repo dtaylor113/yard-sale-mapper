@@ -25,7 +25,8 @@ export function EventDetailPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAdmin } = useAdmin();
-  const { getEvent, getStops, updateEvent, deleteEvent, createStop, updateStop, deleteStop, importStops } = useData();
+  const { getEvent, getStops, updateEvent, deleteEvent, createStop, updateStop, deleteStop, importStops, geocodeEventStops } =
+    useData();
 
   // Only the id at the end of the slug identifies the event; the words in
   // front are decorative. See lib/event-url.ts.
@@ -54,6 +55,12 @@ export function EventDetailPage() {
   const [isAddStopOpen, setIsAddStopOpen] = useState(false);
   const [editingStop, setEditingStop] = useState<Stop | null>(null);
   const [deletingStop, setDeletingStop] = useState<Stop | null>(null);
+  const [geoProgress, setGeoProgress] = useState<{ done: number; total: number } | null>(null);
+  const [geoSummary, setGeoSummary] = useState<string | null>(null);
+
+  // Anything not yet successfully located: freshly imported (pending) stops and
+  // any that previously failed and can be retried.
+  const unlocatedCount = stops.filter((s) => s.geocodeStatus !== "ok").length;
 
   if (!event) {
     return (
@@ -122,6 +129,21 @@ export function EventDetailPage() {
     return importStops(eventId, rows, mode);
   }
 
+  async function handleLocateStops() {
+    setGeoSummary(null);
+    setGeoProgress({ done: 0, total: unlocatedCount });
+    try {
+      const { located, failed } = await geocodeEventStops(eventId, (done, total) => setGeoProgress({ done, total }));
+      setGeoSummary(
+        failed === 0
+          ? `Located ${located} stop${located === 1 ? "" : "s"}.`
+          : `Located ${located} stop${located === 1 ? "" : "s"}; ${failed} couldn\u2019t be found — check the address and try again.`,
+      );
+    } finally {
+      setGeoProgress(null);
+    }
+  }
+
   return (
     <div className="space-y-8">
       <Link to="/" className="btn-text text-sm">
@@ -160,13 +182,33 @@ export function EventDetailPage() {
       <StopMap stops={stops} selectedIds={selectedIds} onToggle={toggleStop} />
 
       {isAdmin && (
-        <div className="flex gap-2">
-          <button type="button" onClick={() => setIsAddStopOpen(true)} className="btn btn-secondary">
-            + Add Stop
-          </button>
-          <button type="button" onClick={() => setIsUploadOpen(true)} className="btn btn-secondary">
-            ⬆ Upload Spreadsheet
-          </button>
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            <button type="button" onClick={() => setIsAddStopOpen(true)} className="btn btn-secondary">
+              + Add Stop
+            </button>
+            <button type="button" onClick={() => setIsUploadOpen(true)} className="btn btn-secondary">
+              ⬆ Upload Spreadsheet
+            </button>
+            {unlocatedCount > 0 && (
+              <button
+                type="button"
+                onClick={handleLocateStops}
+                disabled={geoProgress !== null}
+                className="btn btn-secondary"
+              >
+                {geoProgress
+                  ? `Locating… (${geoProgress.done}/${geoProgress.total})`
+                  : `📍 Locate ${unlocatedCount} stop${unlocatedCount === 1 ? "" : "s"}`}
+              </button>
+            )}
+          </div>
+          {geoProgress && (
+            <p className="text-xs text-ink-subtle">
+              Looking up addresses one per second (rate limit) — this stays open while it runs.
+            </p>
+          )}
+          {geoSummary && <p className="text-sm text-ink-muted">{geoSummary}</p>}
         </div>
       )}
 
