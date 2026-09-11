@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useAdmin } from "@/lib/admin-context";
+import { DEMO_ADMIN_PASSWORD, useAdmin } from "@/lib/admin-context";
 import { Modal } from "./modal";
 
 interface AdminLoginModalProps {
@@ -9,7 +9,9 @@ interface AdminLoginModalProps {
 
 export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
   const { login } = useAdmin();
-  const [password, setPassword] = useState("");
+  // Pre-filled with the demo password for convenience during the mockup phase.
+  // Remove this default once there's a real backend to authenticate against.
+  const [password, setPassword] = useState(DEMO_ADMIN_PASSWORD);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -42,7 +44,7 @@ export function AdminLoginModal({ isOpen, onClose }: AdminLoginModalProps) {
           className="field"
         />
         {error && <p className="text-sm text-danger">{error}</p>}
-        <p className="field-hint">(Mockup hint: the demo password is &quot;yardsale&quot;.)</p>
+        <p className="field-hint">(Mockup hint: the demo password &quot;yardsale&quot; is pre-filled — just click Log in.)</p>
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="btn btn-secondary">
             Cancel
