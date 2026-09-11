@@ -10,7 +10,7 @@ interface EventFormModalProps {
   initialEvent?: YardSaleEvent;
 }
 
-const EMPTY_INPUT: EventInput = { name: "", description: "", eventDate: "", status: "draft" };
+const EMPTY_INPUT: EventInput = { name: "", description: "", eventDate: "", status: "draft", defaultLocation: "" };
 
 export function EventFormModal({ isOpen, onClose, onSubmit, initialEvent }: EventFormModalProps) {
   return (
@@ -35,6 +35,7 @@ function EventFormFields({
           description: initialEvent.description,
           eventDate: initialEvent.eventDate,
           status: initialEvent.status,
+          defaultLocation: initialEvent.defaultLocation ?? "",
         }
       : EMPTY_INPUT
   );
@@ -95,6 +96,20 @@ function EventFormFields({
             <option value="archived">Archived</option>
           </select>
         </div>
+      </div>
+
+      <div>
+        <label className="field-label">Default town / area</label>
+        <input
+          value={form.defaultLocation ?? ""}
+          onChange={(e) => setForm((f) => ({ ...f, defaultLocation: e.target.value }))}
+          placeholder="e.g. Clinton, MA 01510"
+          className="field"
+        />
+        <p className="field-hint">
+          Optional. Lets a route’s bare starting address (“9 Horseshoe Rd”) assume this town. Left blank, it’s
+          guessed from the event’s stops.
+        </p>
       </div>
 
       <div className="flex justify-end gap-2 pt-2">

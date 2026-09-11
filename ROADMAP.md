@@ -174,6 +174,7 @@ flowchart LR
 ```
 Event
   id, name, description, event_date, status (draft/published/archived),
+  default_location (optional "City, ST ZIP" for completing bare route start addresses),
   created_at, updated_at
   -- no owner_token: CRUD is gated by the single shared admin session, not per-event tokens
 
@@ -324,7 +325,10 @@ actually lacks is real address data.
       asking for a city/state or a spelling fix; multiple matches show a "did you
       mean…?" picker before routing; a single match routes straight through. The
       resolved coordinates are handed to `calculateRoute`, so the route starts
-      from the real point rather than a hardcoded town center.
+      from the real point rather than a hardcoded town center. A bare street
+      ("9 Horseshoe Rd") is completed with the event's town: the event form has an
+      optional **Default town / area** field, falling back to inferring it from
+      the stops' addresses when left blank.
 
 ### Phase 3 — Map visualization + stop selection ✅
 - [x] `react-leaflet` + OpenStreetMap tiles in `src/components/stop-map.tsx`,

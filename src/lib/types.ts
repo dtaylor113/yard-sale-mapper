@@ -11,6 +11,12 @@ export interface YardSaleEvent {
   description: string;
   eventDate: string; // ISO date string, e.g. "2026-09-20"
   status: EventStatus;
+  /**
+   * Optional "City, ST ZIP" (or looser town/area) the event is centered on.
+   * Used to complete a bare starting address on the route planner; falls back
+   * to inferring the town from the event's stops when left blank.
+   */
+  defaultLocation?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -20,6 +26,7 @@ export interface EventInput {
   description: string;
   eventDate: string;
   status: EventStatus;
+  defaultLocation?: string;
 }
 
 export type GeocodeStatus = "pending" | "ok" | "failed";

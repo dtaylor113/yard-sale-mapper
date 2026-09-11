@@ -9,6 +9,8 @@ interface RoutePlannerProps {
   eventId: string;
   stops: Stop[];
   selectedIds: Set<string>;
+  /** The event's configured "City, ST ZIP", if the admin set one. */
+  configuredLocation?: string;
 }
 
 function formatMiles(meters: number) {
@@ -29,7 +31,7 @@ function formatDuration(seconds: number) {
   return hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
 }
 
-export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps) {
+export function RoutePlanner({ eventId, stops, selectedIds, configuredLocation }: RoutePlannerProps) {
   const { calculateRoute, geocodeAddress } = useData();
   const [startAddress, setStartAddress] = useState("");
   const [isCalculating, setIsCalculating] = useState(false);
@@ -45,9 +47,9 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
   const [routedStart, setRoutedStart] = useState("");
 
   const selectedCount = selectedIds.size;
-  // "City, ST ZIP" inferred from the event's stops, so a bare street start
-  // address can be assumed to be in the same town.
-  const eventLocale = deriveEventLocale(stops);
+  // The admin's configured town wins; otherwise infer it from the stops. Either
+  // lets a bare street start address be assumed to be in the event's town.
+  const eventLocale = configuredLocation?.trim() || deriveEventLocale(stops);
 
   // A selected stop with no coordinates can't be routed to; count how many so
   // the user knows some of their selection will be skipped.

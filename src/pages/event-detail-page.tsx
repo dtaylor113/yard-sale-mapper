@@ -224,7 +224,12 @@ export function EventDetailPage() {
           onDelete={(stop) => setDeletingStop(stop)}
         />
 
-        <RoutePlanner eventId={event.id} stops={stops} selectedIds={selectedIds} />
+        <RoutePlanner
+          eventId={event.id}
+          stops={stops}
+          selectedIds={selectedIds}
+          configuredLocation={event.defaultLocation}
+        />
       </div>
 
       <EventFormModal
