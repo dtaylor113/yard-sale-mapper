@@ -12,6 +12,9 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    // Bind 3000 or fail loudly — never silently fall through to another port,
+    // so the bookmarked http://localhost:3000/ is always the dev server.
+    strictPort: true,
   },
   test: {
     // Component tests render into jsdom; the pure-logic suites don't care.
