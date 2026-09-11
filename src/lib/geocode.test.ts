@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNominatimUrl, parseNominatimResults } from "./geocode";
+import { buildNominatimUrl, parseNominatimResults, stripSecondaryUnit } from "./geocode";
 
 describe("buildNominatimUrl", () => {
   it("asks for JSON, US-biased, with the query", () => {
@@ -60,5 +60,29 @@ describe("parseNominatimResults", () => {
     expect(parseNominatimResults([])).toEqual([]);
     expect(parseNominatimResults({ error: "unavailable" })).toEqual([]);
     expect(parseNominatimResults(null)).toEqual([]);
+  });
+});
+
+describe("stripSecondaryUnit", () => {
+  it("drops a comma-delimited unit so the street still geocodes", () => {
+    expect(stripSecondaryUnit("250 Grove St, Unit B, Clinton, MA 01510")).toBe(
+      "250 Grove St, Clinton, MA 01510",
+    );
+  });
+
+  it("handles the common designators", () => {
+    expect(stripSecondaryUnit("12 High St, Apt 3, Clinton, MA 01510")).toBe("12 High St, Clinton, MA 01510");
+    expect(stripSecondaryUnit("5 Main St Suite 200, Sterling, MA 01564")).toBe("5 Main St, Sterling, MA 01564");
+    expect(stripSecondaryUnit("250 Grove St #4, Clinton, MA 01510")).toBe("250 Grove St, Clinton, MA 01510");
+  });
+
+  it("leaves an address without a unit untouched", () => {
+    expect(stripSecondaryUnit("44 Water St, Clinton, MA 01510")).toBe("44 Water St, Clinton, MA 01510");
+  });
+
+  it("doesn't mistake a street name that merely contains a designator's letters", () => {
+    // "Fleet" starts with "fl", "Roomy" contains "room" — neither is a designator.
+    expect(stripSecondaryUnit("10 Fleet St, Clinton, MA 01510")).toBe("10 Fleet St, Clinton, MA 01510");
+    expect(stripSecondaryUnit("7 Roomy Ln, Sterling, MA 01564")).toBe("7 Roomy Ln, Sterling, MA 01564");
   });
 });

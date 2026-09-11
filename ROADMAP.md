@@ -315,6 +315,10 @@ actually lacks is real address data.
 - [x] Manual re-geocode: failed/pending stops keep the "Locate" control
       available, so an admin can edit a bad address (existing Edit Stop flow) and
       re-run the lookup. Import report itself is driven by real parse results.
+- [x] Secondary-unit fallback: a "Unit B"/"Apt 3"/"#4" designator makes
+      Nominatim miss an otherwise-valid address, so both the stop batch and the
+      starting-address lookup retry once at street level with the designator
+      stripped (`stripSecondaryUnit`, unit-tested) before giving up.
 - [x] **Validate the user's starting address by geocoding it.** The route planner
       now geocodes the start address on "Calculate Route": no match shows an error
       asking for a city/state or a spelling fix; multiple matches show a "did you
@@ -409,8 +413,10 @@ Two notes for later:
 - [x] Failed-geocode stops flagged with a warning chip in the stop list.
 - [x] The stop list grows to fill its panel instead of stopping at a fixed
       height partway down, so its scrollbar matches the card beside it.
-- [ ] Actually exclude failed-geocode stops from routing (today they're only
-      labeled — nothing stops you selecting one and routing to it).
+- [x] Exclude un-located stops from routing. `calculateRoute` now only routes
+      selected stops that actually have coordinates, and the route planner blocks
+      a calculation where nothing is located yet and warns when some of the
+      selection will be skipped for lack of a location.
 - [ ] Mobile-responsive layout — the two-column stop list / route planner grid
       collapses, but nothing has been tested on a real phone, which matters since
       that's where people will use this while driving.

@@ -49,6 +49,12 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
   // address can be assumed to be in the same town.
   const eventLocale = deriveEventLocale(stops);
 
+  // A selected stop with no coordinates can't be routed to; count how many so
+  // the user knows some of their selection will be skipped.
+  const selectedStops = stops.filter((s) => selectedIds.has(s.id));
+  const locatedSelectedCount = selectedStops.filter((s) => s.lat != null && s.lng != null).length;
+  const unlocatedSelectedCount = selectedStops.length - locatedSelectedCount;
+
   /** Runs the route from an already-resolved starting point. */
   async function routeFrom(start: GeocodeCandidate, startText: string) {
     setCandidates(null);
@@ -82,6 +88,10 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
     const typed = startAddress.trim();
     if (typed.length === 0) {
       setError("Enter a starting address first.");
+      return;
+    }
+    if (locatedSelectedCount === 0) {
+      setError("None of the selected stops have a location yet. Use “Locate stops” above the map, then try again.");
       return;
     }
     // Assume the event's town when the user typed only a street.
@@ -132,6 +142,14 @@ export function RoutePlanner({ eventId, stops, selectedIds }: RoutePlannerProps)
       </div>
 
       {error && <p className="text-sm text-danger">{error}</p>}
+
+      {unlocatedSelectedCount > 0 && (
+        <p className="text-xs text-caution">
+          {unlocatedSelectedCount} selected stop{unlocatedSelectedCount === 1 ? "" : "s"}{" "}
+          {unlocatedSelectedCount === 1 ? "isn’t" : "aren’t"} located yet and will be left out of the route. Use
+          “Locate stops” above the map to place {unlocatedSelectedCount === 1 ? "it" : "them"}.
+        </p>
+      )}
 
       <button
         type="button"

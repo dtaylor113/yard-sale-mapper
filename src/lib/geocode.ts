@@ -52,6 +52,27 @@ export function buildNominatimUrl(query: string, limit = 5) {
   return `${NOMINATIM_ENDPOINT}?${params.toString()}`;
 }
 
+// Secondary unit designators (apartment/suite/etc.) that Nominatim chokes on:
+// "250 Grove St, Unit B, Clinton, MA" fails, while "250 Grove St, Clinton, MA"
+// resolves fine. Matched as whole words, taking the designator and the
+// unit token that follows it, up to the next comma or the end of the string.
+const SECONDARY_UNIT =
+  /[,\s]+(?:unit|apt|apartment|suite|ste|bldg|building|fl|floor|rm|room|lot|space|spc|trailer|trlr|dept|department|#)\b\.?\s*#?\s*[\w-]*\s*(?=,|$)/i;
+
+/**
+ * Drops a secondary unit designator from an address so a street-level geocode
+ * can still succeed. Returns the address unchanged when there's nothing to
+ * strip, so callers can cheaply detect "did this actually simplify?".
+ */
+export function stripSecondaryUnit(address: string): string {
+  const stripped = address
+    .replace(SECONDARY_UNIT, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/\s+,/g, ",")
+    .trim();
+  return stripped;
+}
+
 interface NominatimRow {
   lat?: string;
   lon?: string;

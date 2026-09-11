@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
-import { geocode, GEOCODE_MIN_INTERVAL_MS } from "./geocode";
+import { geocode, GEOCODE_MIN_INTERVAL_MS, stripSecondaryUnit, type GeocodeCandidate } from "./geocode";
 import { newEventId } from "./event-url";
 import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS } from "./mock-data";
 import type {
@@ -191,7 +191,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return newStops;
   }, []);
 
-  const geocodeAddress = useCallback((query: string) => geocode(query, { limit: 5 }), []);
+  const geocodeAddress = useCallback(async (query: string) => {
+    const matches = await geocode(query, { limit: 5 });
+    if (matches.length > 0) return matches;
+    // A secondary unit ("Unit B", "Apt 3") often makes Nominatim miss; retry
+    // once at street level before giving up.
+    const simplified = stripSecondaryUnit(query);
+    return simplified && simplified !== query ? geocode(simplified, { limit: 5 }) : matches;
+  }, []);
 
   const geocodeEventStops = useCallback(
     async (eventId: string, onProgress?: (done: number, total: number) => void) => {
@@ -205,13 +212,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
           [eventId]: (prev[eventId] ?? []).map((s) => (s.id === id ? { ...s, ...next } : s)),
         }));
 
+      // One address → coordinates, retrying without a secondary unit
+      // designator on a miss (that's the usual reason a real address fails).
+      const locate = async (address: string): Promise<GeocodeCandidate | null> => {
+        const [best] = await geocode(address, { limit: 1 });
+        if (best) return best;
+        const simplified = stripSecondaryUnit(address);
+        if (simplified && simplified !== address) {
+          await delay(GEOCODE_MIN_INTERVAL_MS); // the retry is a second request; keep under the rate cap
+          const [alt] = await geocode(simplified, { limit: 1 });
+          if (alt) return alt;
+        }
+        return null;
+      };
+
       let located = 0;
       let failed = 0;
 
       for (let i = 0; i < targets.length; i++) {
         const stop = targets[i];
         try {
-          const [best] = await geocode(stop.rawAddress, { limit: 1 });
+          const best = await locate(stop.rawAddress);
           if (best) {
             patch(stop.id, { lat: best.lat, lng: best.lng, geocodeStatus: "ok" });
             located++;
@@ -241,7 +262,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     async ({ eventId, selectedStopIds, startAddress, startLat, startLng }: CalculateRouteParams): Promise<RouteResult> => {
       await delay(900); // stands in for the real OSRM+VROOM round trip (Phase 4)
       const allStops = stopsByEvent[eventId] ?? [];
-      const selected = allStops.filter((s) => selectedStopIds.includes(s.id));
+      // Only route stops we can actually place: a selected-but-unlocated stop
+      // has no coordinates, so including it would invent a leg to nowhere.
+      const selected = allStops.filter(
+        (s) => selectedStopIds.includes(s.id) && s.lat != null && s.lng != null,
+      );
       const ordered = nearestNeighborOrder(selected);
 
       // Prefer the geocoded start when the caller resolved one; fall back to the
