@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
-import { geocode, GEOCODE_MIN_INTERVAL_MS, stripSecondaryUnit, type GeocodeCandidate } from "./geocode";
+import { geocodeWithUnitFallback, GEOCODE_MIN_INTERVAL_MS } from "./geocode";
+import { isLocated } from "./stops";
 import { newEventId } from "./event-url";
 import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS } from "./mock-data";
 import type {
@@ -26,7 +27,7 @@ import type {
 // `fetch(...)` call) — no consuming component should need to change.
 
 const FAKE_NETWORK_DELAY_MS = 400;
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 /**
  * Stands in for the user's geocoded start address until Phase 4 wires up real
@@ -35,11 +36,11 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
  * be turned into coordinates without a geocoder.
  */
 function pseudoStartPoint(stops: Stop[]) {
-  const plotted = stops.filter((s) => s.lat != null && s.lng != null);
+  const plotted = stops.filter(isLocated);
   if (plotted.length === 0) return DEFAULT_MAP_CENTER;
 
-  const lat = plotted.reduce((sum, s) => sum + s.lat!, 0) / plotted.length;
-  const lng = plotted.reduce((sum, s) => sum + s.lng!, 0) / plotted.length;
+  const lat = plotted.reduce((sum, s) => sum + s.lat, 0) / plotted.length;
+  const lng = plotted.reduce((sum, s) => sum + s.lng, 0) / plotted.length;
   return { lat: lat + 0.012, lng: lng - 0.012 };
 }
 
@@ -191,14 +192,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return newStops;
   }, []);
 
-  const geocodeAddress = useCallback(async (query: string) => {
-    const matches = await geocode(query, { limit: 5 });
-    if (matches.length > 0) return matches;
-    // A secondary unit ("Unit B", "Apt 3") often makes Nominatim miss; retry
-    // once at street level before giving up.
-    const simplified = stripSecondaryUnit(query);
-    return simplified && simplified !== query ? geocode(simplified, { limit: 5 }) : matches;
-  }, []);
+  // A single interactive lookup: retry at street level on a miss, no pacing
+  // delay needed since the user drives it.
+  const geocodeAddress = useCallback((query: string) => geocodeWithUnitFallback(query, { limit: 5 }), []);
 
   const geocodeEventStops = useCallback(
     async (eventId: string, onProgress?: (done: number, total: number) => void) => {
@@ -212,18 +208,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           [eventId]: (prev[eventId] ?? []).map((s) => (s.id === id ? { ...s, ...next } : s)),
         }));
 
-      // One address → coordinates, retrying without a secondary unit
-      // designator on a miss (that's the usual reason a real address fails).
-      const locate = async (address: string): Promise<GeocodeCandidate | null> => {
-        const [best] = await geocode(address, { limit: 1 });
-        if (best) return best;
-        const simplified = stripSecondaryUnit(address);
-        if (simplified && simplified !== address) {
-          await delay(GEOCODE_MIN_INTERVAL_MS); // the retry is a second request; keep under the rate cap
-          const [alt] = await geocode(simplified, { limit: 1 });
-          if (alt) return alt;
-        }
-        return null;
+      // One address → best coordinate, retrying without a secondary unit
+      // designator on a miss. The retry is a second request, so it waits out the
+      // rate cap first.
+      const locate = async (address: string) => {
+        const [best] = await geocodeWithUnitFallback(address, {
+          limit: 1,
+          beforeRetry: () => delay(GEOCODE_MIN_INTERVAL_MS),
+        });
+        return best ?? null;
       };
 
       let located = 0;
@@ -264,9 +257,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const allStops = stopsByEvent[eventId] ?? [];
       // Only route stops we can actually place: a selected-but-unlocated stop
       // has no coordinates, so including it would invent a leg to nowhere.
-      const selected = allStops.filter(
-        (s) => selectedStopIds.includes(s.id) && s.lat != null && s.lng != null,
-      );
+      const selected = allStops.filter((s) => selectedStopIds.includes(s.id) && isLocated(s));
       const ordered = nearestNeighborOrder(selected);
 
       // Prefer the geocoded start when the caller resolved one; fall back to the

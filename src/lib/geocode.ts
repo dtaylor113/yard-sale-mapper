@@ -131,3 +131,37 @@ export async function geocode(
     throw new GeocodeError("The address lookup service returned something unreadable. Try again in a moment.");
   }
 }
+
+/** The subset of {@link geocode} this helper needs, so it can be injected in tests. */
+type GeocodeFn = (query: string, opts?: { limit?: number; signal?: AbortSignal }) => Promise<GeocodeCandidate[]>;
+
+/**
+ * Geocodes an address, retrying once at street level when a secondary unit
+ * designator ("Unit B", "Apt 3") makes the first lookup miss. Centralizes the
+ * fallback both the single-address and batch paths need.
+ *
+ * @param beforeRetry runs between the two attempts — batch callers pass a delay
+ *   here to stay under the geocoder's rate cap; a single interactive lookup can
+ *   skip it.
+ * @param geocodeFn injectable for testing; defaults to the real {@link geocode}.
+ */
+export async function geocodeWithUnitFallback(
+  query: string,
+  opts: {
+    limit?: number;
+    signal?: AbortSignal;
+    beforeRetry?: () => Promise<void>;
+    geocodeFn?: GeocodeFn;
+  } = {},
+): Promise<GeocodeCandidate[]> {
+  const { limit, signal, beforeRetry, geocodeFn = geocode } = opts;
+
+  const matches = await geocodeFn(query, { limit, signal });
+  if (matches.length > 0) return matches;
+
+  const simplified = stripSecondaryUnit(query);
+  if (!simplified || simplified === query) return matches;
+
+  if (beforeRetry) await beforeRetry();
+  return geocodeFn(simplified, { limit, signal });
+}

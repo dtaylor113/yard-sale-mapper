@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useData } from "@/lib/data-context";
 import { deriveEventLocale, localizeStartAddress } from "@/lib/event-locale";
 import { GeocodeError, type GeocodeCandidate } from "@/lib/geocode";
+import { isLocated } from "@/lib/stops";
 import { buildGoogleMapsRouteLegs, type RouteLegLink } from "@/lib/google-maps";
 import type { RouteResult, Stop } from "@/lib/types";
 
@@ -54,7 +55,7 @@ export function RoutePlanner({ eventId, stops, selectedIds, configuredLocation }
   // A selected stop with no coordinates can't be routed to; count how many so
   // the user knows some of their selection will be skipped.
   const selectedStops = stops.filter((s) => selectedIds.has(s.id));
-  const locatedSelectedCount = selectedStops.filter((s) => s.lat != null && s.lng != null).length;
+  const locatedSelectedCount = selectedStops.filter(isLocated).length;
   const unlocatedSelectedCount = selectedStops.length - locatedSelectedCount;
 
   /** Runs the route from an already-resolved starting point. */

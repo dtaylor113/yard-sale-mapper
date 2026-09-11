@@ -32,6 +32,10 @@ export function SpreadsheetUploadModal({ isOpen, onClose, onImport, existingStop
   const [mode, setMode] = useState<ImportMode>("replace");
   const [error, setError] = useState<string | null>(null);
 
+  // The parsed/mapped rows, computed once per render (walking the sheet twice —
+  // for the preview and the count — was wasteful). The preview is just its head.
+  const mappedRows = table && mapping ? buildImportRows(table, mapping) : [];
+
   function reset() {
     setStep("select");
     setFile(null);
@@ -65,10 +69,9 @@ export function SpreadsheetUploadModal({ isOpen, onClose, onImport, existingStop
 
   async function handleImport() {
     if (!table || !mapping) return;
-    const built = buildImportRows(table, mapping);
-    setRows(built);
+    setRows(mappedRows);
     setStep("importing");
-    await onImport(built, mode);
+    await onImport(mappedRows, mode);
     setStep("report");
   }
 
@@ -87,8 +90,7 @@ export function SpreadsheetUploadModal({ isOpen, onClose, onImport, existingStop
     });
   }
 
-  const previewRows = table && mapping ? buildImportRows(table, mapping).slice(0, PREVIEW_ROWS) : [];
-  const mappedRows = table && mapping ? buildImportRows(table, mapping) : [];
+  const previewRows = mappedRows.slice(0, PREVIEW_ROWS);
   const willImport = mappedRows.filter((r) => r.status === "imported").length;
   const importedCount = rows.filter((r) => r.status === "imported").length;
   const skipped = rows.filter((r) => r.status === "skipped");

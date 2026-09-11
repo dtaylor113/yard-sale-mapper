@@ -3,6 +3,7 @@ import type { LatLngTuple } from "leaflet";
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { DEFAULT_MAP_CENTER } from "@/lib/mock-data";
+import { isLocated } from "@/lib/stops";
 import type { Stop } from "@/lib/types";
 
 interface StopMapProps {
@@ -10,12 +11,6 @@ interface StopMapProps {
   selectedIds: Set<string>;
   onToggle: (id: string) => void;
   height?: string;
-}
-
-type PlottedStop = Stop & { lat: number; lng: number };
-
-function isPlottable(stop: Stop): stop is PlottedStop {
-  return stop.lat != null && stop.lng != null;
 }
 
 // Circles rather than Leaflet's default pin images: they carry the
@@ -47,7 +42,7 @@ function FitToStops({ positions }: { positions: LatLngTuple[] }) {
 }
 
 export function StopMap({ stops, selectedIds, onToggle, height = "26rem" }: StopMapProps) {
-  const plotted = stops.filter(isPlottable);
+  const plotted = stops.filter(isLocated);
   const positions: LatLngTuple[] = plotted.map((stop) => [stop.lat, stop.lng]);
   const missingCoords = stops.length - plotted.length;
 
