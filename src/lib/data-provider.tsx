@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { DataContext, type DataContextValue } from "./data-context";
 import { geocodeWithUnitFallback, GEOCODE_MIN_INTERVAL_MS } from "./geocode";
+import { loadPersistedState, savePersistedState } from "./persistence";
 import { isLocated } from "./stops";
 import { newEventId } from "./event-url";
 import { DEFAULT_MAP_CENTER, MOCK_EVENTS, MOCK_STOPS } from "./mock-data";
@@ -84,8 +85,20 @@ function newId(prefix: string) {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [events, setEvents] = useState<YardSaleEvent[]>(MOCK_EVENTS);
-  const [stopsByEvent, setStopsByEvent] = useState<Record<string, Stop[]>>(MOCK_STOPS);
+  // Hydrate from localStorage when there's saved data, otherwise seed from the
+  // mocks (which then get persisted, so the demo content survives too). Read
+  // once via lazy initializers so it doesn't touch storage on every render.
+  const [events, setEvents] = useState<YardSaleEvent[]>(() => loadPersistedState()?.events ?? MOCK_EVENTS);
+  const [stopsByEvent, setStopsByEvent] = useState<Record<string, Stop[]>>(
+    () => loadPersistedState()?.stopsByEvent ?? MOCK_STOPS,
+  );
+
+  // Mirror every change back to storage. It's the same state the future backend
+  // will own; swapping localStorage for API calls is a change to these two
+  // functions, not the components.
+  useEffect(() => {
+    savePersistedState({ events, stopsByEvent });
+  }, [events, stopsByEvent]);
 
   const getEvent = useCallback((id: string) => events.find((e) => e.id === id), [events]);
   const getStops = useCallback((eventId: string) => stopsByEvent[eventId] ?? [], [stopsByEvent]);

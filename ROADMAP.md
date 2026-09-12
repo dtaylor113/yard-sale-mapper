@@ -200,18 +200,20 @@ ImportJob  (optional, tracks spreadsheet uploads)
 
 **Where things stand:** the whole app is a working UI mockup — every page, modal,
 and navigation path is built and clickable, driven by mock data and stubbed async
-functions in `src/lib/data-provider.tsx`. There is **no backend, no database, and
-no geocoding yet**. A checked box below means that bullet is genuinely finished;
-bullets that exist only as mocked UI say so explicitly, because the stub and the
-real thing are very different amounts of work.
+functions in `src/lib/data-provider.tsx`. There is **no backend and no database
+yet**; data survives refreshes only via an interim **localStorage** mirror, and
+**geocoding is live**. A checked box below means that bullet is genuinely
+finished; bullets that exist only as mocked UI say so explicitly, because the
+stub and the real thing are very different amounts of work.
 
 The non-stub production logic today is the Google Maps deep-link construction
 (`src/lib/google-maps.ts`), the spreadsheet import pipeline
 (`src/lib/spreadsheet.ts` reading CSV/XLSX, `src/lib/column-mapping.ts` guessing
-columns and composing addresses), and the geocoder (`src/lib/geocode.ts`, a real
-Nominatim call behind a swappable adapter) — all with unit-tested pure logic.
-The one thing imported stops still lack is **persistence**, which is what keeps
-Phase 2 open.
+columns and composing addresses), the geocoder (`src/lib/geocode.ts`, a real
+Nominatim call behind a swappable adapter), and the localStorage persistence
+layer (`src/lib/persistence.ts`) — all with unit-tested pure logic. With imports
+and geocoded coordinates now surviving a refresh, Phase 2 is functionally
+complete; a real database is the remaining production upgrade, tracked in Phase 0.
 
 ### Phase 0 — Project setup
 - [x] Init Vite + React + TypeScript SPA, Tailwind, ESLint, repo skeleton.
@@ -236,8 +238,8 @@ Phase 2 open.
 
 ### Phase 1 — Admin gate + Event & Stop CRUD (no map yet)
 - [x] Public event list + detail pages; add/edit/delete controls rendered only in
-      admin mode. **UI only** — mutations hit in-memory stubs, so edits vanish on
-      reload.
+      admin mode. **UI only** — mutations hit the client-side data layer (now
+      mirrored to localStorage, so edits survive a reload) rather than a real API.
 - [x] Event URLs are `/events/<slug>-<id>` (`src/lib/event-url.ts`). Only the
       trailing id resolves the event; the slug is decorative, so renaming an
       event doesn't strand links already shared, and the detail page forwards
@@ -268,12 +270,13 @@ actually lacks is real address data.
 > to put real data in the app. Real coordinates also unblock Phase 4 — the route
 > optimizer has nothing meaningful to optimize without them.
 >
-> **Where this stands:** parsing, column-mapping, **geocoding**, and
-> **starting-address validation** are all done — you can upload a real CSV/XLSX,
-> turn those stops into real coordinates (they then appear on the map and drive
-> routing), and the route planner now resolves the start address instead of
-> trusting whatever was typed. The one remaining gap is **persistence**:
-> everything still lives in memory, so it all evaporates on refresh.
+> **Where this stands: functionally complete.** Parsing, column-mapping,
+> **geocoding**, **starting-address validation**, and **persistence** are all done
+> — you can upload a real CSV/XLSX, turn those stops into real coordinates (they
+> then appear on the map and drive routing), the route planner resolves the start
+> address instead of trusting whatever was typed, and imports plus geocoded
+> coordinates now **survive a refresh** via localStorage. Swapping that interim
+> store for a real database is a Phase 0 task, not a Phase 2 gap.
 
 - [x] Upload UI: drag/drop or browse for a `.csv`/`.xlsx`, reading/mapping/preview
       steps, and an import report table listing per-row imported/skipped with a
@@ -290,8 +293,8 @@ actually lacks is real address data.
 - [x] Actually parse rows → create `Stop`s with `geocode_status = pending`. Rows
       with no street address, or duplicates of an earlier row, are skipped and
       reported with the file's own row number. On import the user chooses whether
-      to **replace** the event's existing stops or **add to** them. **In-memory
-      only** — see the persistence bullet below.
+      to **replace** the event's existing stops or **add to** them. Persisted to
+      localStorage (see the persistence bullet below), so an import survives a reload.
 - [x] **Where geocoding runs, and against what — decided for now: client-side
       Nominatim, behind a swappable adapter** (`src/lib/geocode.ts`). Keyless, so
       it works with no signup and actually resolves the mock towns' real streets
@@ -302,17 +305,22 @@ actually lacks is real address data.
       browser can't send the identifying `User-Agent` they ask for. Because it's
       an adapter, moving to a server-side endpoint or a keyed free-tier service
       (ORS, LocationIQ, MapTiler) later is a one-file change.
-- [ ] **Decide where imported data lives.** Everything is in-memory today, so an
-      upload evaporates on refresh — which makes the feature useless on its own.
-      Either bring Postgres forward from Phase 0, or persist to localStorage as
-      an interim step if a real backend isn't worth standing up yet.
+- [x] **Decide where imported data lives — interim: localStorage.** The data layer
+      now mirrors `events` and `stopsByEvent` into localStorage
+      (`src/lib/persistence.ts`): it hydrates from there on startup (falling back to
+      the mock seed, and reseeding if the stored blob is corrupt or a stale
+      version), and writes back on every change. So an upload — and the coordinates
+      it's geocoded to — survive a refresh. This is deliberately interim: it's
+      per-browser, unshared, and unauthenticated. The production answer is still
+      Postgres from Phase 0, at which point the `data-provider` functions point at
+      the API instead of localStorage (their async signatures already match).
 - [x] Geocoding worker: an admin **"Locate N stops"** control on the event page
       batch-geocodes every not-yet-located stop, paced at ~1/sec, writing each
       stop's `lat`/`lng` and flipping its status to `ok`/`failed` as results
       arrive (so the map and list update live), then reports how many were
-      located. `data-provider.geocodeEventStops` owns the loop and pacing.
-      **Still in-memory** — the coordinates vanish on refresh until persistence
-      lands.
+      located. `data-provider.geocodeEventStops` owns the loop and pacing. The
+      resulting coordinates are persisted to localStorage, so they survive a refresh
+      (no need to re-run the batch).
 - [x] Manual re-geocode: failed/pending stops keep the "Locate" control
       available, so an admin can edit a bad address (existing Edit Stop flow) and
       re-run the lookup. Import report itself is driven by real parse results.
